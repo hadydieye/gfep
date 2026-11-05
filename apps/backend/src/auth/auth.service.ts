@@ -17,6 +17,7 @@ import { hashSessionToken, sessionCookieName } from './session.middleware.js';
 export const GENERIC_AUTH_ERROR = 'Identifiants invalides.';
 export const MAX_FAILED_LOGINS = 5;
 export const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 heures (décision C4)
+export const LOCK_DURATION_MS = 15 * 60 * 1000; // verrouillage temporaire (décision I14)
 
 @Injectable()
 export class AuthService {
@@ -38,8 +39,20 @@ export class AuthService {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
 
-    // Compte verrouillé ou suspendu : rejet sans vérifier le mot de passe
+    // Verrou expiré : déverrouillage au premier essai suivant, compteur remis à zéro
+    if (user.status === UserStatus.LOCKED && (await this.lockHasExpired(user.id))) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { status: UserStatus.ACTIVE, failedLoginCount: 0 },
+      });
+      user.status = UserStatus.ACTIVE;
+      user.failedLoginCount = 0;
+    }
+
+    // Compte verrouillé ou suspendu : rejet sans vérifier le mot de passe. La
+    // vérification factice garde le même temps de réponse qu'un mauvais mot de passe.
     if (user.status !== UserStatus.ACTIVE) {
+      await argon2.verify(await this.dummyHash, dto.password);
       await this.authEvent(user.id, AuthEventType.LOGIN_FAILED, sourceIp);
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
@@ -112,6 +125,17 @@ export class AuthService {
         this.authEvent(userId, AuthEventType.ACCOUNT_LOCKED, sourceIp),
       ]);
     }
+  }
+
+  // Le verrou expire 15 min après le dernier ACCOUNT_LOCKED ; sans cet événement
+  // (verrou posé hors du flux de connexion), le compte reste verrouillé.
+  private async lockHasExpired(userId: string): Promise<boolean> {
+    const lastLock = await this.prisma.authEvent.findFirst({
+      where: { userId, eventType: AuthEventType.ACCOUNT_LOCKED },
+      orderBy: { timestamp: 'desc' },
+      select: { timestamp: true },
+    });
+    return lastLock !== null && lastLock.timestamp.getTime() + LOCK_DURATION_MS <= Date.now();
   }
 
   private authEvent(userId: string, eventType: AuthEventType, sourceIp: string) {

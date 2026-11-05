@@ -1,30 +1,23 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import request from 'supertest';
-import { App } from 'supertest/types.js';
-import { AppModule } from './../src/app.module.js';
+import { createTestApp } from './helpers.js';
 
+// Application complète (configureApp + AppModule) sur la base de test
 describe('Health (e2e)', () => {
-  let app: INestApplication<App>;
+  let app: NestExpressApplication;
 
-  beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.setGlobalPrefix('api/v1');
-    await app.init();
+  beforeAll(async () => {
+    app = await createTestApp();
   });
 
-  it('/api/v1/health (GET)', () => {
+  afterAll(async () => {
+    await app.close();
+  });
+
+  it('/api/v1/health (GET) est public et répond 200', () => {
     return request(app.getHttpServer())
       .get('/api/v1/health')
       .expect(200)
       .expect((res) => expect(res.body.status).toBe('ok'));
-  });
-
-  afterEach(async () => {
-    await app.close();
   });
 });

@@ -1,10 +1,11 @@
 import { spawnSync } from 'child_process';
-import { ValidationPipe } from '@nestjs/common';
+import type { Type } from '@nestjs/common';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
+import { configureApp } from '../src/app.setup.js';
 import { assertTestDatabaseUrl, backendRoot } from './setup/test-database.js';
 
 export const SESSION_COOKIE = 'gfep_session';
@@ -20,16 +21,19 @@ export function testPrisma(): PrismaClient {
   return new PrismaClient({ datasourceUrl: assertTestDatabaseUrl(process.env.DATABASE_URL) });
 }
 
-/** Application Nest complète, configurée comme dans src/main.ts (à maintenir alignée). */
-export async function createTestApp(): Promise<NestExpressApplication> {
+/**
+ * Application Nest complète, configurée par configureApp() comme src/main.ts.
+ * `controllers` permet d'ajouter des contrôleurs de test (ex. interdiction par défaut).
+ */
+export async function createTestApp(
+  options: { controllers?: Type[] } = {},
+): Promise<NestExpressApplication> {
   assertTestDatabaseUrl(process.env.DATABASE_URL);
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = moduleRef.createNestApplication<NestExpressApplication>({ logger: false });
-  app.setGlobalPrefix('api/v1');
-  app.set('trust proxy', 'loopback');
-  app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
-  );
+  const moduleRef = await Test.createTestingModule({
+    imports: [AppModule],
+    controllers: options.controllers ?? [],
+  }).compile();
+  const app = configureApp(moduleRef.createNestApplication<NestExpressApplication>({ logger: false }));
   await app.init();
   return app;
 }

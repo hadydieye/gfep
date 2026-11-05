@@ -55,7 +55,7 @@ Ce document cartographie **tous les écrans** de l'application, leur contenu, le
 
 ### 3.1 `/login`
 - **Contenu** : logo, formulaire identifiant/mot de passe, lien "Se connecter avec le compte d'entreprise" (bascule vers `/login/ad`), lien "Mot de passe oublié".
-- **Transitions** : succès → `/dashboard`. Échec → message d'erreur générique, reste sur `/login`. Compte verrouillé → message avec délai d'attente.
+- **Transitions** : succès → `/dashboard`. Échec → message d'erreur générique, reste sur `/login`. Compte verrouillé (temporairement, 15 minutes) → même message générique que tout autre échec, sans délai affiché (correction consignée dans `DECISIONS.md`, I20).
 - **Accès** : public (non authentifié uniquement — un utilisateur déjà connecté est redirigé vers `/dashboard`).
 
 ### 3.2 `/login/ad`

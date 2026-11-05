@@ -8,22 +8,17 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
-import { SessionGuard } from '../auth/session.guard.js';
 import { Permission } from '../rbac/decorators/permission.decorator.js';
 import { Roles } from '../rbac/decorators/roles.decorator.js';
-import { PermissionGuard } from '../rbac/guards/permission.guard.js';
-import { RoleGuard } from '../rbac/guards/roles.guard.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { EmployeeResponseDto, PaginatedEmployeesDto } from './dto/employee-response.dto.js';
 import { PaginationQueryDto } from './dto/pagination-query.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 import { EmployeesService } from './employees.service.js';
 
-@UseGuards(SessionGuard, RoleGuard, PermissionGuard)
 @Controller('employees')
 export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}

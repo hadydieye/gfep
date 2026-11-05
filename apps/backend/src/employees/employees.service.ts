@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -7,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
+import { BusinessRuleException } from '../common/invalid-data.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { writeScopeDepartmentId } from '../rbac/roles.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
@@ -21,6 +21,9 @@ const EMPLOYEE_INCLUDE = {
 } satisfies Prisma.EmployeeInclude;
 
 type EmployeeWithRelations = Prisma.EmployeeGetPayload<{ include: typeof EMPLOYEE_INCLUDE }>;
+
+// Nouveaux essais si deux créations simultanées obtiennent le même numéro
+export const MAX_EMPLOYEE_NUMBER_ATTEMPTS = 5;
 
 @Injectable()
 export class EmployeesService {
@@ -75,23 +78,32 @@ export class EmployeesService {
     }
     await this.assertReferences(dto.departmentId, dto.positionId, dto.managerId);
 
-    const employee = await this.withUniqueConflict(async () =>
-      this.prisma.employee.create({
-        data: {
-          employeeNumber: await this.nextEmployeeNumber(),
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          professionalEmail: dto.professionalEmail,
-          phone: dto.phone ?? null,
-          departmentId: dto.departmentId,
-          positionId: dto.positionId,
-          managerId: dto.managerId ?? null,
-          hireDate: new Date(dto.hireDate),
-        },
-        include: EMPLOYEE_INCLUDE,
-      }),
-    );
-    return toResponse(employee);
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        const employee = await this.prisma.$transaction(async (tx) =>
+          tx.employee.create({
+            data: {
+              employeeNumber: await nextEmployeeNumber(tx),
+              firstName: dto.firstName,
+              lastName: dto.lastName,
+              professionalEmail: dto.professionalEmail,
+              phone: dto.phone ?? null,
+              departmentId: dto.departmentId,
+              positionId: dto.positionId,
+              managerId: dto.managerId ?? null,
+              hireDate: new Date(dto.hireDate),
+            },
+            include: EMPLOYEE_INCLUDE,
+          }),
+        );
+        return toResponse(employee);
+      } catch (error) {
+        if (uniqueTarget(error)?.includes('employeeNumber') && attempt < MAX_EMPLOYEE_NUMBER_ATTEMPTS) {
+          continue;
+        }
+        throw translateUniqueViolation(error);
+      }
+    }
   }
 
   async update(
@@ -113,7 +125,7 @@ export class EmployeesService {
       throw new ForbiddenException();
     }
     if (dto.managerId === id) {
-      throw new BadRequestException('Un employé ne peut pas être son propre responsable.');
+      throw new BusinessRuleException('Un employé ne peut pas être son propre responsable.');
     }
     await this.assertReferences(
       dto.departmentId ?? existing.departmentId,
@@ -121,8 +133,8 @@ export class EmployeesService {
       dto.managerId,
     );
 
-    const employee = await this.withUniqueConflict(() =>
-      this.prisma.employee.update({
+    const employee = await this.prisma.employee
+      .update({
         where: { id },
         data: {
           firstName: dto.firstName,
@@ -135,8 +147,10 @@ export class EmployeesService {
           hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
         },
         include: EMPLOYEE_INCLUDE,
-      }),
-    );
+      })
+      .catch((error: unknown) => {
+        throw translateUniqueViolation(error);
+      });
     return toResponse(employee);
   }
 
@@ -153,39 +167,49 @@ export class EmployeesService {
         ? this.prisma.employee.findUnique({ where: { id: managerId }, select: { id: true } })
         : null,
     ]);
-    if (!department) throw new BadRequestException('Département inexistant.');
-    if (!position) throw new BadRequestException('Poste inexistant.');
+    if (!department) throw new BusinessRuleException('Département inexistant.');
+    if (!position) throw new BusinessRuleException('Poste inexistant.');
     if (position.departmentId !== departmentId) {
-      throw new BadRequestException("Le poste n'appartient pas au département choisi.");
+      throw new BusinessRuleException("Le poste n'appartient pas au département choisi.");
     }
-    if (managerId && !manager) throw new BadRequestException('Responsable inexistant.');
+    if (managerId && !manager) throw new BusinessRuleException('Responsable inexistant.');
   }
+}
 
-  // Format GF-{AAAA}-{NNN} : count(employees) + 1, en sautant les numéros déjà pris
-  private async nextEmployeeNumber(): Promise<string> {
-    const year = new Date().getFullYear();
-    let sequence = (await this.prisma.employee.count()) + 1;
-    for (;;) {
-      const candidate = `GF-${year}-${String(sequence).padStart(3, '0')}`;
-      const taken = await this.prisma.employee.findUnique({
-        where: { employeeNumber: candidate },
-        select: { id: true },
-      });
-      if (!taken) return candidate;
-      sequence += 1;
-    }
-  }
+// Format GF-{AAAA}-{NNN} : plus grand suffixe de l'année courante + 1
+async function nextEmployeeNumber(tx: Prisma.TransactionClient): Promise<string> {
+  const prefix = `GF-${new Date().getFullYear()}-`;
+  const existing = await tx.employee.findMany({
+    where: { employeeNumber: { startsWith: prefix } },
+    select: { employeeNumber: true },
+  });
+  const max = existing.reduce((highest, { employeeNumber }) => {
+    const suffix = employeeNumber.slice(prefix.length);
+    return /^\d+$/.test(suffix) ? Math.max(highest, Number(suffix)) : highest;
+  }, 0);
+  return `${prefix}${String(max + 1).padStart(3, '0')}`;
+}
 
-  private async withUniqueConflict<T>(operation: () => Promise<T>): Promise<T> {
-    try {
-      return await operation();
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('Un employé avec cet email professionnel existe déjà.');
-      }
-      throw error;
-    }
+/** Colonnes concernées par une violation d'unicité Prisma (P2002), ou undefined. */
+function uniqueTarget(error: unknown): string | undefined {
+  if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== 'P2002') {
+    return undefined;
   }
+  const target = error.meta?.target;
+  if (Array.isArray(target)) return target.join(',');
+  return typeof target === 'string' ? target : '';
+}
+
+function translateUniqueViolation(error: unknown): unknown {
+  const target = uniqueTarget(error);
+  if (target === undefined) return error;
+  if (target.includes('professionalEmail')) {
+    return new ConflictException('Un employé avec cet email professionnel existe déjà.');
+  }
+  if (target.includes('employeeNumber')) {
+    return new ConflictException("Impossible d'attribuer un numéro d'employé. Réessayez.");
+  }
+  return new ConflictException('Cette donnée existe déjà.');
 }
 
 function toResponse(employee: EmployeeWithRelations): EmployeeResponseDto {

@@ -123,3 +123,72 @@ Il est affiché (désactivé) pour les rôles d'écriture : MVP 1 ne prévoit au
 
 ### I12 — Base de test isolée
 Les tests d'intégration backend (`npm test`) utilisent une base PostgreSQL dédiée, dérivée de `DATABASE_URL` en suffixant le nom de base par `_test` (ex. `gfep_db_test`), ou fournie par `TEST_DATABASE_URL`. Le harnais refuse toute URL dont le nom de base ne se termine pas par `_test`, crée la base si besoin, applique les migrations (`prisma migrate deploy`) et la vide (TRUNCATE) au début de chaque suite. La base de développement n'est jamais touchée.
+
+---
+
+## Décisions consignées après l'audit MVP 1
+
+### I13 — Décisions prises pendant l'implémentation, non documentées jusqu'ici (audit, section G)
+- **Token `--color-link`** : rôle de couleur pour texte, icône et anneau de focus (liens, navigation active, logo). En clair `#0F4C3A` (primaire) ; en sombre `#D4AF37` (secondaire sombre), car le primaire sombre `#1A6B52` n'atteint que 2,8:1 sur la surface.
+- **Badges** : texte en couleur de premier plan sur fond sémantique teinté, avec une pastille de la couleur sémantique. Le texte en couleur sémantique ne passait pas WCAG AA (ex. « Suspendu » 2,8:1).
+- **Bordures des champs** : token `foreground-secondary` au lieu de `border` (1,25:1, sous le seuil 3:1 de WCAG 1.4.11).
+- **Bouton destructif en mode sombre** : texte `#0D0F0E` (blanc sur `#E05A4A` = 3,66:1).
+- **Vitest au lieu de Jest** (TRD §2) : choix hérité de la Phase 0 et conservé ; Supertest est utilisé comme prévu.
+- **Script `test` racine** : `npm test` enchaîne backend puis frontend.
+- **Liste des employés** : renvoie tous les statuts par défaut (filtre `status` disponible), alors que `design.md` §6.3 indiquait « employés actifs ».
+- **Recherche** : multi-mots, chaque mot doit correspondre au prénom ou au nom (ET).
+- **Codes d'erreur ajoutés** au tableau de `design.md` §10 : 409 pour un email professionnel en doublon, 400 pour « son propre responsable ».
+- **Identifiant non UUID** : 400 (`ParseUUIDPipe`), pas 404.
+- **Navigation mobile** : icônes dans la topbar ; le tiroir (drawer) et la sidebar réductible relèvent de l'étape 3.1.
+- **Pas de `lib/auth/actions.ts`** (prévu par `design.md` §3.8) : le formulaire appelle `/api/v1/auth/login` via les rewrites.
+- **Contradiction sur le verrouillage** entre PRD/AppFlow et `design.md` §10.2 : tranchée par I14 et I20.
+
+### I14 — Verrouillage temporaire de 15 minutes
+- Après 5 échecs, le compte passe `LOCKED` et un `AuthEvent ACCOUNT_LOCKED` est créé.
+- Au premier essai de connexion survenant 15 minutes ou plus après le dernier `ACCOUNT_LOCKED`, le compte repasse `ACTIVE`, avec `failedLoginCount` remis à 0. L'essai est ensuite traité normalement : un mauvais mot de passe compte alors comme 1er échec.
+- Aucun nouveau champ en base. Le schéma n'a pas de type d'événement « déverrouillage », donc il n'est pas journalisé.
+- Un compte `LOCKED` sans événement `ACCOUNT_LOCKED` (verrou posé hors du flux de connexion) reste verrouillé.
+- Pendant le verrou, la réponse est identique à un mauvais mot de passe : même 401 « Identifiants invalides. », même corps. Une vérification argon2 factice aligne le temps de réponse.
+- Le déverrouillage manuel par un Super Admin est reporté à l'étape 2.4 (tâche T2.4.R2).
+
+### I15 — Interdiction par défaut des routes
+- `SessionGuard`, `RoleGuard` et `PermissionGuard` sont globaux (`APP_GUARD`, dans cet ordre) ; les contrôleurs n'utilisent plus `@UseGuards` pour l'autorisation.
+- **Exceptions explicites** :
+  - `@Public()`, réservé à `GET /health` et `POST /auth/login` ;
+  - `@AuthenticatedOnly()`, pour les routes ouvertes à tout utilisateur connecté et limitées à ses propres données (`GET /auth/me`, `POST /auth/logout`). Sans cette exception, chaque nouveau rôle de l'étape 2.4 devrait être ajouté à ces routes.
+- **Toute autre route** doit porter `@Roles()` ET `@Permission()`, sinon 403, même pour un Super Admin.
+- `test/route-access.int-spec.ts` inventorie les routes (contrôle croisé avec le routeur Express) et échoue si une route est publique sans `@Public()` ou n'a pas de métadonnées d'autorisation.
+
+### I16 — Numérotation `employeeNumber`
+- Format `GF-{AAAA}-{NNN}` : plus grand suffixe numérique de l'année courante + 1. La numérotation repart à 001 chaque année ; les trous ne sont pas réutilisés.
+- Calcul et insertion dans une même transaction. En cas de conflit d'unicité sur `employeeNumber` (créations simultanées), nouvel essai, jusqu'à 5 tentatives au total ; au-delà, 409 « Impossible d'attribuer un numéro d'employé. Réessayez. ».
+- **Traduction de P2002** selon `meta.target` :
+  - le message « email professionnel existe déjà » n'apparaît que si le conflit porte sur `professionalEmail` ;
+  - tout autre conflit renvoie un message neutre.
+
+### I17 — Erreurs 400 sans fuite (design.md §11, Property 1)
+- Toute erreur de validation renvoie `{ statusCode: 400, error: "Bad Request", message: "Données invalides." }`, avec au plus `fields` : les champs **déclarés** du DTO en erreur. Un champ inconnu n'est jamais nommé, et le détail des contraintes n'est jamais renvoyé.
+- **Filtre global** (`BadRequestFilter`) : tout autre 400 du framework (JSON mal formé, `ParseUUIDPipe`, etc.) est remplacé par la même réponse générique. Le JSON mal formé renvoyait auparavant le message du parseur (« Unexpected end of JSON input »).
+- Les refus métier volontaires utilisent `BusinessRuleException` et gardent leur message en français destiné à l'utilisateur.
+- Validation, pipe et filtre sont configurés dans `src/app.setup.ts` (`configureApp`), partagé par `main.ts` et les tests.
+
+### I18 — `/design-system` absent en production
+La page de référence interne renvoie 404 quand `NODE_ENV=production` (`app/design-system/layout.tsx`), conformément à `04-UXUI-Design-System.md` §9. Elle reste disponible avec `npm run dev`.
+
+### I19 — Bouton « Suspendre » reporté à l'étape 2.4
+Il reste affiché désactivé en MVP 1 (I10) et sera activé avec l'endpoint de changement de statut à l'étape 2.4 (tâche T2.4.R1, avec tests par rôle).
+
+### I20 — Correction de PRD §4.1 et AppFlow §3.1
+- Les deux documents annonçaient un message de verrouillage indiquant le délai d'attente, ce qui contredit la règle absolue du message générique (`design.md` §10.2, Req 10.5).
+- Ils sont corrigés : verrouillage temporaire de 15 minutes, message générique, aucun délai affiché.
+
+### I21 — Message de connexion en cas de panne
+Le formulaire de connexion distingue :
+- « Identifiants invalides. » : 401 ou 400 ;
+- « Trop de tentatives… » : 429 ;
+- « Service momentanément indisponible. Réessayez. » : erreur réseau ou 5xx.
+
+Une panne du backend n'est donc plus présentée comme un échec d'identification.
+
+### I22 — Tests e2e sur la base de test
+`test/app.e2e-spec.ts` utilise l'application configurée par `configureApp` sur la base `_test` et fait partie de `npm test`. `npm run test:e2e` réutilise la même configuration, limitée aux specs e2e.

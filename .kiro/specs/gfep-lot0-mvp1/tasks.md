@@ -564,7 +564,7 @@ Ce plan couvre le nettoyage de la fondation (Lot 0) puis les cinq étapes foncti
     - Utiliser `upsert` (ou vérification d'existence) sur chaque entité pour garantir l'idempotence
     - Créer les 6 départements : `DG`, `RH`, `CF`, `IT`, `CO`, `AC` (noms et codes définis dans `design.md` §8.3)
     - Créer les 6 postes (un par département) : Directeur général, Responsable RH, Responsable comptable, Responsable informatique, Responsable commercial, Responsable audit
-    - Créer les 5 employés : GF-2026-001 à GF-2026-005 (données dans `design.md` §8.3)
+    - Créer les 6 employés : GF-2026-001 à GF-2026-005 (données dans `design.md` §8.3) + GF-2026-006 (Kadiatou Bangoura, Commercial) pour que chaque département ait un effectif non nul (DECISIONS.md I9)
     - Créer les 3 rôles : `SUPER_ADMIN`, `DEPARTMENT_MANAGER`, `EMPLOYEE`
     - Créer les 6 permissions : `dashboard:read`, `employees:read`, `employees:write`, `employees:delete`, `departments:read`, `departments:write`
     - Créer les `RolePermission` selon le tableau `design.md` §8.3 (SUPER_ADMIN = toutes, DEPARTMENT_MANAGER = 4, EMPLOYEE = 3)
@@ -612,6 +612,15 @@ Ce plan couvre le nettoyage de la fondation (Lot 0) puis les cinq étapes foncti
     - _→ Req 24.7_
   - [x] T1.7.1.8 Résoudre tout critère échoué avant de considérer le lot terminé
     - _→ Req 24.8_
+
+---
+
+### Étape 2.4 — Tâches reportées depuis le MVP 1 (hors périmètre de ce lot)
+
+- [ ] T2.4.R1 — Endpoint de changement de statut employé + activation du bouton « Suspendre », avec tests par rôle
+  - Le bouton est affiché désactivé en MVP 1 (DECISIONS.md I19)
+- [ ] T2.4.R2 — Déverrouillage manuel d'un compte par Super Admin
+  - Complète le déverrouillage automatique après 15 minutes (DECISIONS.md I14)
 
 ---
 

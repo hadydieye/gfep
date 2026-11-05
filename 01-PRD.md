@@ -48,7 +48,7 @@ Le détail technique est dans le TRD ; ce PRD liste les exigences du point de vu
 ### 4.1 Authentification
 - L'utilisateur peut se connecter avec un identifiant/mot de passe local, ou avec ses identifiants d'entreprise (compte de domaine).
 - En cas d'échec, un message générique et neutre s'affiche (jamais d'indice sur l'existence du compte).
-- Après plusieurs échecs, le compte est temporairement bloqué avec un message clair indiquant le délai d'attente.
+- Après 5 échecs, le compte est temporairement bloqué (15 minutes). Le message affiché reste le message générique : aucun délai ni indice de verrouillage n'est montré, pour ne pas révéler l'existence ou l'état du compte (correction consignée dans `DECISIONS.md`, I20).
 
 ### 4.2 Dashboard
 - Vue d'ensemble adaptée au rôle de l'utilisateur à la connexion.

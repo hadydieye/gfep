@@ -17,6 +17,22 @@ const loginSchema = z.object({
 
 type LoginValues = z.infer<typeof loginSchema>;
 
+export const LOGIN_ERRORS = {
+  invalid: 'Identifiants invalides.',
+  throttled: 'Trop de tentatives. Réessayez dans quelques minutes.',
+  unavailable: 'Service momentanément indisponible. Réessayez.',
+} as const;
+
+/**
+ * Message affiché selon le statut HTTP (0 = backend injoignable). Les refus
+ * d'authentification restent génériques : ils ne révèlent jamais l'existence du compte.
+ */
+export function loginErrorMessage(status: number): string {
+  if (status === 0 || status >= 500) return LOGIN_ERRORS.unavailable;
+  if (status === 429) return LOGIN_ERRORS.throttled;
+  return LOGIN_ERRORS.invalid;
+}
+
 export function LoginForm() {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
@@ -37,12 +53,7 @@ export function LoginForm() {
       router.refresh();
       return;
     }
-    // Message générique : ne révèle jamais l'existence du compte
-    setFormError(
-      result.status === 429
-        ? 'Trop de tentatives. Réessayez dans quelques minutes.'
-        : 'Identifiants invalides.',
-    );
+    setFormError(loginErrorMessage(result.status));
   };
 
   return (

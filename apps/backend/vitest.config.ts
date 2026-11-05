@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['src/**/*.spec.ts', 'test/**/*.int-spec.ts'],
+    include: ['src/**/*.spec.ts', 'test/**/*.int-spec.ts', 'test/**/*.e2e-spec.ts'],
     // Base isolée (suffixe _test), jamais la base de développement
     globalSetup: ['./test/setup/global-setup.ts'],
     env: {

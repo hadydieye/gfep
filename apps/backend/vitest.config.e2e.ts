@@ -1,10 +1,8 @@
 import { defineConfig } from 'vitest/config';
+import baseConfig from './vitest.config.js';
 
+// Mêmes base de test, globalSetup et variables que `npm test`, limité aux specs e2e
 export default defineConfig({
-  resolve: { tsconfigPaths: true },
-  test: {
-    globals: true,
-    root: './',
-    include: ['**/*.e2e-spec.ts'],
-  },
+  ...baseConfig,
+  test: { ...baseConfig.test, include: ['test/**/*.e2e-spec.ts'] },
 });

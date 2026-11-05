@@ -3,16 +3,18 @@ import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { AuthenticatedUser } from './authenticated-user.js';
 import { AuthService } from './auth.service.js';
+import { AuthenticatedOnly } from '../rbac/decorators/authenticated-only.decorator.js';
 import { CurrentUser } from './decorators/current-user.decorator.js';
+import { Public } from './decorators/public.decorator.js';
 import { AuthResponseDto } from './dto/auth-response.dto.js';
 import { LoginDto } from './dto/login.dto.js';
-import { SessionGuard } from './session.guard.js';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('login')
+  @Public()
   @HttpCode(200)
   @UseGuards(ThrottlerGuard)
   @Throttle({ login: { limit: 5, ttl: 900000 } })
@@ -26,7 +28,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
-  @UseGuards(SessionGuard)
+  @AuthenticatedOnly()
   logout(
     @CurrentUser() user: AuthenticatedUser,
     @Req() req: Request,
@@ -36,7 +38,7 @@ export class AuthController {
   }
 
   @Get('me')
-  @UseGuards(SessionGuard)
+  @AuthenticatedOnly()
   me(@CurrentUser() user: AuthenticatedUser): Promise<AuthResponseDto> {
     return this.authService.me(user);
   }

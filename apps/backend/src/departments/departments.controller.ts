@@ -1,16 +1,12 @@
-import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
-import { SessionGuard } from '../auth/session.guard.js';
+import { Controller, Get, Param, ParseUUIDPipe } from '@nestjs/common';
 import { Permission } from '../rbac/decorators/permission.decorator.js';
 import { Roles } from '../rbac/decorators/roles.decorator.js';
-import { PermissionGuard } from '../rbac/guards/permission.guard.js';
-import { RoleGuard } from '../rbac/guards/roles.guard.js';
 import { DepartmentsService } from './departments.service.js';
 import {
   DepartmentDetailResponseDto,
   DepartmentResponseDto,
 } from './dto/department-response.dto.js';
 
-@UseGuards(SessionGuard, RoleGuard, PermissionGuard)
 @Controller('departments')
 export class DepartmentsController {
   constructor(private readonly departmentsService: DepartmentsService) {}
