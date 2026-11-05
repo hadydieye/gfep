@@ -48,10 +48,10 @@ export async function resetDatabase(prisma: PrismaClient): Promise<void> {
   await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${list} RESTART IDENTITY CASCADE`);
 }
 
-/** Exécute le script de seed dans un processus séparé, contre la base de test. */
-export function runSeed(env: Record<string, string> = {}) {
+/** Exécute le seed complet (prisma/seed.ts) dans un processus séparé, contre la base de test. */
+export function runSeed(env: Record<string, string> = {}, script = 'prisma/seed.ts') {
   const databaseUrl = assertTestDatabaseUrl(process.env.DATABASE_URL);
-  return spawnSync(process.execPath, ['--import', 'tsx', 'prisma/seed-mvp1.ts'], {
+  return spawnSync(process.execPath, ['--import', 'tsx', script], {
     cwd: backendRoot,
     env: { ...process.env, DATABASE_URL: databaseUrl, ...env },
     encoding: 'utf8',

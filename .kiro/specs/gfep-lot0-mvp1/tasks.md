@@ -232,7 +232,7 @@ Ce plan couvre le nettoyage de la fondation (Lot 0) puis les cinq étapes foncti
     - Sinon → `redirect('/login')`
     - _→ Req 8.1, 8.2_
 
-- [ ] T1.1.10 — Checkpoint 1.1 (validation manuelle utilisateur en attente)
+- [x] T1.1.10 — Checkpoint 1.1 (validé manuellement par l'utilisateur, 2026-11-05)
   - Vérifier que le backend compile sans erreur, que `POST /auth/login` retourne 200 avec un cookie httpOnly, que `POST /auth/login` avec mauvais mot de passe retourne 401 avec le message générique, et que `GET /auth/me` retourne 401 sans cookie valide.
   - Demander au développeur de valider manuellement avant de passer à l'étape suivante.
 
@@ -492,7 +492,7 @@ Ce plan couvre le nettoyage de la fondation (Lot 0) puis les cinq étapes foncti
     - Soumission : `PATCH /api/v1/employees/:id`, puis redirect vers `/employees/:id`
     - _→ Req 20.3_
 
-- [ ] T1.4.11 — Checkpoint 1.4 (validation manuelle utilisateur en attente)
+- [x] T1.4.11 — Checkpoint 1.4 (validé manuellement par l'utilisateur, 2026-11-05)
   - Vérifier que la liste des employés est paginée, que le formulaire de création fonctionne avec `SUPER_ADMIN`, que le rate limiting 403 s'applique correctement, et qu'un `EMPLOYEE` reçoit 403 en tentant de créer un employé.
   - Demander au développeur de valider avant de passer à l'étape suivante.
 
@@ -616,6 +616,8 @@ Ce plan couvre le nettoyage de la fondation (Lot 0) puis les cinq étapes foncti
 ---
 
 ### Étape 2.4 — Tâches reportées depuis le MVP 1 (hors périmètre de ce lot)
+
+> Suivies dans `.kiro/specs/gfep-mvp2/tasks.md` : T2.4.R1 → T2.4.5 et T2.4.6 ; T2.4.R2 → T2.4.9.
 
 - [ ] T2.4.R1 — Endpoint de changement de statut employé + activation du bouton « Suspendre », avec tests par rôle
   - Le bouton est affiché désactivé en MVP 1 (DECISIONS.md I19)

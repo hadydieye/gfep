@@ -1,5 +1,5 @@
 import { defineConfig } from 'vitest/config';
-import { testDatabaseUrl } from './test/setup/test-database.js';
+import { testDatabaseUrl, testStorageDir } from './test/setup/test-database.js';
 
 export default defineConfig({
   // Resolves the path aliases declared in tsconfig.json, including the ones
@@ -15,6 +15,7 @@ export default defineConfig({
       DATABASE_URL: testDatabaseUrl(),
       NODE_ENV: 'test',
       SESSION_COOKIE_NAME: 'gfep_session',
+      DOCUMENTS_STORAGE_DIR: testStorageDir(),
     },
     // Les suites partagent la base de test : exécution séquentielle
     fileParallelism: false,

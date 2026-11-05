@@ -1,7 +1,8 @@
 import { execFileSync } from 'child_process';
+import { mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 import { PrismaClient } from '@prisma/client';
-import { backendRoot, testDatabaseUrl } from './test-database.js';
+import { backendRoot, testDatabaseUrl, testStorageDir } from './test-database.js';
 
 // Crée la base de test si besoin puis applique les migrations (une fois par `npm test`)
 export default async function globalSetup() {
@@ -20,6 +21,10 @@ export default async function globalSetup() {
   } finally {
     await admin.$disconnect();
   }
+
+  // Fichiers de documents isolés, jamais ceux du développement
+  rmSync(testStorageDir(), { recursive: true, force: true });
+  mkdirSync(testStorageDir(), { recursive: true });
 
   execFileSync(join(backendRoot, '../../node_modules/.bin/prisma'), ['migrate', 'deploy'], {
     cwd: backendRoot,

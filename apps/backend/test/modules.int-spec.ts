@@ -80,7 +80,8 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
         firstName: 'Mamadou',
         department: { code: 'CF', name: 'Comptabilité et finances' },
         position: { title: 'Responsable comptable' },
-        manager: { firstName: 'Mohamed', lastName: 'Keïta' },
+        // Seed complet (M5) : les responsables de département rapportent au Directeur général
+        manager: { firstName: 'Thierno', lastName: 'Baldé' },
         employmentStatus: 'ACTIVE',
       });
     });
@@ -95,16 +96,16 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
   describe('GET /employees : pagination, recherche, filtres', () => {
     it('limite par défaut 25, page 1', async () => {
       const response = await get('/employees');
-      expect(response.body).toMatchObject({ page: 1, limit: 25, total: 6 });
-      expect(response.body.data).toHaveLength(6);
+      expect(response.body).toMatchObject({ page: 1, limit: 25, total: 40 });
+      expect(response.body.data).toHaveLength(25);
     });
 
-    it('pages de 2 : 3 pages disjointes couvrant les 6 employés, triées par nom', async () => {
-      const pages = await Promise.all([1, 2, 3, 4].map((page) => get(`/employees?page=${page}&limit=2`)));
-      const ids = pages.slice(0, 3).flatMap((p) => p.body.data.map((e: { id: string }) => e.id));
-      expect(pages.slice(0, 3).map((p) => p.body.data.length)).toEqual([2, 2, 2]);
-      expect(new Set(ids).size).toBe(6);
-      expect(pages[3].body).toMatchObject({ data: [], total: 6, page: 4, limit: 2 });
+    it('pages de 10 : 4 pages disjointes couvrant les 40 employés, triées par nom', async () => {
+      const pages = await Promise.all([1, 2, 3, 4, 5].map((page) => get(`/employees?page=${page}&limit=10`)));
+      const ids = pages.slice(0, 4).flatMap((p) => p.body.data.map((e: { id: string }) => e.id));
+      expect(pages.slice(0, 4).map((p) => p.body.data.length)).toEqual([10, 10, 10, 10]);
+      expect(new Set(ids).size).toBe(40);
+      expect(pages[4].body).toMatchObject({ data: [], total: 40, page: 5, limit: 10 });
 
       const all = (await get('/employees')).body.data.map((e: { lastName: string }) => e.lastName);
       expect(all).toEqual([...all].sort((a: string, b: string) => a.localeCompare(b)));
@@ -129,12 +130,15 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
     it('filtre par département', async () => {
       const it = await department('IT');
       const response = await get(`/employees?departmentId=${it.id}`);
-      expect(response.body.total).toBe(1);
-      expect(response.body.data[0]).toMatchObject({ lastName: 'Sow', department: { code: 'IT' } });
+      expect(response.body.total).toBe(7);
+      const members = response.body.data as Array<{ lastName: string; department: { code: string } }>;
+      expect(members.every((e) => e.department.code === 'IT')).toBe(true);
+      // Mohamed Keïta a rejoint l'IT (M5)
+      expect(members.map((e) => e.lastName)).toEqual(expect.arrayContaining(['Sow', 'Keïta', 'Kaba']));
     });
 
     it('filtre par statut', async () => {
-      expect((await get('/employees?status=ACTIVE')).body.total).toBe(6);
+      expect((await get('/employees?status=ACTIVE')).body.total).toBe(40);
       expect((await get('/employees?status=SUSPENDED')).body.total).toBe(0);
       expect((await get('/employees?status=INCONNU')).status).toBe(400);
     });
@@ -173,7 +177,7 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
         expect(item.headcount).toBe(await activeCount(item.id));
       }
       const rh = (response.body as Array<{ code: string; headcount: number }>).find((d) => d.code === 'RH');
-      expect(rh?.headcount).toBe(2); // Camara + Soumah créée ci-dessus
+      expect(rh?.headcount).toBe(7); // 6 employés RH du seed + Soumah créée ci-dessus
     });
 
     it('l’effectif suit les changements de statut (employé suspendu exclu)', async () => {
@@ -194,14 +198,14 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
       expect(response.body).toMatchObject({
         code: 'RH',
         name: 'Ressources humaines',
-        headcount: 2,
+        headcount: 7,
         manager: { firstName: 'Fatoumata', lastName: 'Camara', position: 'Responsable RH' },
-        positions: [{ title: 'Responsable RH' }],
+        // Postes triés par niveau hiérarchique
+        positions: [{ title: 'Responsable RH' }, { title: 'Chargé(e) RH' }, { title: 'Assistant(e) RH' }],
       });
-      expect(response.body.employees.map((e: { lastName: string }) => e.lastName)).toEqual([
-        'Camara',
-        'Soumah',
-      ]);
+      const team = response.body.employees.map((e: { lastName: string }) => e.lastName);
+      expect(team).toHaveLength(7);
+      expect(team).toEqual(expect.arrayContaining(['Camara', 'Soumah', 'Bah', 'Kanté']));
     });
 
     it('404 pour un département inconnu', async () => {

@@ -10,6 +10,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Fichiers déposés (documents) et générés par le seed
+apps/backend/storage/
+
 # OS
 .DS_Store
 Thumbs.db

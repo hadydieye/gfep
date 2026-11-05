@@ -1,4 +1,5 @@
 import { readFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { parseEnv } from 'util';
@@ -35,6 +36,11 @@ export function assertTestDatabaseUrl(databaseUrl: string | undefined): string {
     throw new Error(`Base "${name}" refusée : les tests n'utilisent qu'une base suffixée _test.`);
   }
   return databaseUrl!;
+}
+
+/** Répertoire des fichiers de documents pendant les tests, vidé par le globalSetup. */
+export function testStorageDir(): string {
+  return join(tmpdir(), 'gfep-test-documents');
 }
 
 export { backendRoot };
