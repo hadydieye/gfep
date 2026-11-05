@@ -1,0 +1,145 @@
+@import "tailwindcss";
+
+/* Le thème sombre est piloté par la classe .dark sur <html>, jamais par la
+   préférence système : sans cette ligne, Tailwind v4 compile dark: en
+   @media (prefers-color-scheme: dark) et applique les couleurs sombres des
+   composants sur un thème clair dès que l'OS est en mode sombre. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ─── GFEP Design System — Tailwind v4 theme tokens ─────────────────────────
+   In Tailwind v4, @theme replaces tailwind.config.ts for design tokens.
+   The file tailwind.config.ts at the workspace root documents the same tokens
+   for reference and legacy tooling compatibility.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@theme {
+  /* ── Colors ── */
+
+  /* Primary */
+  --color-primary: #0F4C3A;
+  --color-primary-dark: #1A6B52;
+
+  /* Secondary */
+  --color-secondary: #C9A227;
+  --color-secondary-dark: #D4AF37;
+
+  /* Background */
+  --color-background-main: #FAFAF8;
+  --color-background-surface: #FFFFFF;
+  --color-background-main-dark: #0D0F0E;
+  --color-background-surface-dark: #16181A;
+
+  /* Accent utilisé comme couleur de texte, d'icône ou d'anneau de focus
+     (liens, navigation active, logo). Rôle dérivé de la palette : primaire en
+     clair ; en sombre le primaire #1A6B52 n'atteint que 2.8:1 sur la surface,
+     on utilise donc le secondaire sombre #D4AF37 (8:1). */
+  --color-link: #0F4C3A;
+
+  /* Foreground (text) */
+  --color-foreground-primary: #111418;
+  --color-foreground-secondary: #5C6168;
+  --color-foreground-primary-dark: #F2F3F2;
+  --color-foreground-secondary-dark: #9AA0A6;
+
+  /* Border */
+  --color-border: #E4E6E8;
+  --color-border-dark: #2A2D30;
+
+  /* Semantic */
+  --color-success: #1B8A5A;
+  --color-success-dark: #2FA873;
+  --color-warning: #B8860B;
+  --color-warning-dark: #D4A017;
+  --color-error: #C0392B;
+  --color-error-dark: #E05A4A;
+
+  /* ── Spacing (base-4 scale) ── */
+  --spacing-1: 4px;
+  --spacing-2: 8px;
+  --spacing-3: 12px;
+  --spacing-4: 16px;
+  --spacing-6: 24px;
+  --spacing-8: 32px;
+  --spacing-12: 48px;
+  --spacing-16: 64px;
+
+  /* ── Typography ── */
+  /* --font-inter is injected by next/font in layout.tsx (task 5.3).
+     The fallback stack is used until then. */
+  --font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+
+  /* ── Border radius ── */
+  --radius-card: 8px;
+}
+
+/* ─── CSS custom properties for direct access outside Tailwind ───────────────
+   (scripts, PDF rendering, future Storybook, etc.)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+@layer base {
+  :root {
+    color-scheme: light;
+
+    /* Primary */
+    --color-primary: #0F4C3A;
+    --color-primary-dark: #1A6B52;
+
+    /* Secondary */
+    --color-secondary: #C9A227;
+    --color-secondary-dark: #D4AF37;
+
+    /* Background */
+    --color-background-main: #FAFAF8;
+    --color-background-surface: #FFFFFF;
+    --color-background-main-dark: #0D0F0E;
+    --color-background-surface-dark: #16181A;
+
+    /* Accent texte (voir @theme) */
+    --color-link: #0F4C3A;
+
+    /* Foreground */
+    --color-foreground-primary: #111418;
+    --color-foreground-secondary: #5C6168;
+    --color-foreground-primary-dark: #F2F3F2;
+    --color-foreground-secondary-dark: #9AA0A6;
+
+    /* Border */
+    --color-border: #E4E6E8;
+    --color-border-dark: #2A2D30;
+
+    /* Semantic */
+    --color-success: #1B8A5A;
+    --color-success-dark: #2FA873;
+    --color-warning: #B8860B;
+    --color-warning-dark: #D4A017;
+    --color-error: #C0392B;
+    --color-error-dark: #E05A4A;
+  }
+
+  /* Dark mode — override the semantic roles used by components.
+     The -dark suffixed tokens remain static; the base names are reassigned. */
+  .dark {
+    color-scheme: dark;
+    --color-primary: #1A6B52;
+    --color-link: #D4AF37;
+    --color-secondary: #D4AF37;
+    --color-background-main: #0D0F0E;
+    --color-background-surface: #16181A;
+    --color-foreground-primary: #F2F3F2;
+    --color-foreground-secondary: #9AA0A6;
+    --color-border: #2A2D30;
+    --color-success: #2FA873;
+    --color-warning: #D4A017;
+    --color-error: #E05A4A;
+  }
+
+  html {
+    font-family: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+  }
+
+  /* Couleurs par défaut du document : tout texte sans classe explicite suit le thème */
+  body {
+    background-color: var(--color-background-main);
+    color: var(--color-foreground-primary);
+  }
+}

@@ -1,0 +1,651 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Créer le `package.json` racine npm workspaces": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849620698
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849632602
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849829509
+      }
+    ],
+    "1.2 Initialiser l'application frontend Next.js 15": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849620852
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849833762
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851056273
+      }
+    ],
+    "1.3 Configurer ESLint et Prettier dans le frontend": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849620980
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851069223
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851531670
+      }
+    ],
+    "1.4 Initialiser l'application backend NestJS 10": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621110
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849834008
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851056623
+      }
+    ],
+    "1.5 Implémenter le health check endpoint": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621194
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851069347
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851531754
+      }
+    ],
+    "1.6 Configurer ESLint et Prettier dans le backend": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621275
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851070025
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851532311
+      }
+    ],
+    "2. Checkpoint 0.1 — Vérifier le critère de passage de l'étape 0.1": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621355
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851545360
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793852609984
+      }
+    ],
+    "3.1 Créer le fichier `docker-compose.yml` à la racine": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621471
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793852614683
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793852789555
+      }
+    ],
+    "3.2 Créer les fichiers d'environnement": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621541
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793852615583
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793852789813
+      }
+    ],
+    "3.3 Installer Prisma 5 dans le backend et configurer le service": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621630
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793852795669
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793862864740
+      }
+    ],
+    "3.4 Écrire le schéma Prisma complet": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621705
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793862869279
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863009394
+      }
+    ],
+    "3.5 Écrire les tests de vérification du schéma Prisma": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621793
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863013838
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863083310
+      }
+    ],
+    "4. Checkpoint 0.2 — Vérifier le critère de passage de l'étape 0.2": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621874
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863098557
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863259229
+      }
+    ],
+    "5.1 Configurer les tokens couleur dans `tailwind.config.ts`": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849621957
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863267383
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863701916
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863713269
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864143583
+      }
+    ],
+    "5.2 Définir les CSS custom properties dans `globals.css`": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622037
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863267927
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863702067
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863717200
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864149744
+      }
+    ],
+    "5.3 Configurer le root layout et charger Inter via `next/font`": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622134
+      },
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863266930
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863702289
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863721393
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864156129
+      }
+    ],
+    "5.4 Initialiser shadcn/ui et créer `components.json`": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622206
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863702493
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864165155
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864226808
+      }
+    ],
+    "5.5 Implémenter le composant `Button` personnalisé": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622289
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863702613
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864231389
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864643246
+      }
+    ],
+    "5.6 Écrire le test property-based pour le composant Button (Property 1)": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622362
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863702701
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864940500
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793865084117
+      }
+    ],
+    "5.7 Implémenter le composant `Card` personnalisé": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622438
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863702796
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864237807
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864649036
+      }
+    ],
+    "5.8 Implémenter le composant `Table` personnalisé": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622522
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863702948
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864237879
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864649186
+      }
+    ],
+    "5.9 Implémenter le composant `Input` personnalisé": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622593
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703068
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864238139
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864649101
+      }
+    ],
+    "5.10 Écrire le test property-based pour le composant Input (Property 2)": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622660
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703170
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864940339
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793865084195
+      }
+    ],
+    "5.11 Implémenter le composant `Badge` personnalisé": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622742
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703281
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864238003
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864649246
+      }
+    ],
+    "5.12 Écrire le test property-based pour le composant Badge (Property 3)": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622825
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703368
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864940217
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793865084285
+      }
+    ],
+    "5.13 Implémenter le composant `Toast` (Sonner wrapper)": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622903
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703582
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864238225
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793864802091
+      }
+    ],
+    "5.14 Créer la page de référence `/design-system`": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849622974
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703672
+      },
+      {
+        "executionId": "cf0b5855-4fb0-4b92-8c6c-ad431acb72eb",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793865090128
+      },
+      {
+        "executionId": "5a3e0f33-2730-42d0-99da-9063c81c0bf9",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793887922214
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793888292946
+      }
+    ],
+    "5.15 Écrire le test property-based pour la page Design System (Property 4)": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849623056
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703777
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793888300165
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793888405014
+      }
+    ],
+    "6. Checkpoint 0.3 — Vérifier le critère de passage de l'étape 0.3": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849623127
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703879
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793888412208
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793888515929
+      }
+    ],
+    "7. Checkpoint final Phase 0 — Vérification complète des critères de complétion": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793849623230
+      },
+      {
+        "executionId": "c8016146-d60f-4490-a267-9d54a1ed3503",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793863703969
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793888522503
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793889121769
+      }
+    ],
+    "1. Étape 0.1 — Initialisation du monorepo et des applications": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793851532398
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793889148392
+      }
+    ],
+    "3. Étape 0.2 — Docker Compose et schéma Prisma": [
+      {
+        "executionId": "0b05230b-6613-4e44-922b-0e90a4bc4a6c",
+        "chatSessionId": "sess_4a39d7fc-8d70-4188-b509-312ac9fbb91f",
+        "timestamp": 1793863083453
+      },
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793889148518
+      }
+    ],
+    "5. Étape 0.3 — Design system GFEP en code": [
+      {
+        "executionId": "4d0c59f8-e8ce-45a6-8cba-f8581b1435db",
+        "chatSessionId": "sess_93b7450d-d51c-4004-b993-d62218c9e46d",
+        "timestamp": 1793888405160
+      }
+    ]
+  }
+}

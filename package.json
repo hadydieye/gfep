@@ -1,0 +1,25 @@
+{
+  "name": "gfep",
+  "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "workspaces": [
+    "apps/frontend",
+    "apps/backend"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev -w apps/frontend\" \"npm run dev -w apps/backend\"",
+    "build": "npm run build -w apps/frontend && npm run build -w apps/backend",
+    "lint": "npm run lint -w apps/frontend && npm run lint -w apps/backend",
+    "test": "npm run test -w apps/backend && npm run test -w apps/frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "prisma@5.22.0": true,
+    "@prisma/engines@5.22.0": true
+  }
+}
