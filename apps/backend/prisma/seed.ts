@@ -51,6 +51,7 @@ async function seedDocuments(prisma: PrismaClient, org: SeededOrganisation) {
       mimeType: MIME_TYPES[d.format],
       fileSize: ensureSeedFile(storagePath, d.format, d.title),
       confidentialityLevel: d.level,
+      validationStatus: d.validationStatus,
     };
     const document = existing
       ? await prisma.document.update({ where: { id: existing.id }, data: fields })

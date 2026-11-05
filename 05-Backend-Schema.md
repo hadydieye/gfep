@@ -240,6 +240,12 @@ enum DocumentPermissionType {
   DELETE
 }
 
+enum DocumentValidationStatus {
+  PENDING
+  VALIDATED
+  REJECTED
+}
+
 model DocumentCategory {
   id           String      @id @default(uuid())
   name         String      @unique
@@ -262,6 +268,7 @@ model Document {
   mimeType             String
   fileSize             Int
   confidentialityLevel ConfidentialityLevel @default(INTERNAL)
+  validationStatus     DocumentValidationStatus @default(PENDING)
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 

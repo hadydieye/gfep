@@ -5,7 +5,7 @@ import * as argon2 from 'argon2';
 import { resetDatabase, runSeed, testPrisma } from './helpers.js';
 import { testStorageDir } from './setup/test-database.js';
 
-// Volumes de l'étape 2.1 (gfep-mvp2/requirements.md R1.4, DECISIONS.md M3)
+// Volumes après T2.2.3 (gfep-mvp2/DECISIONS.md M24)
 const EXPECTED_COUNTS = {
   departments: 6,
   positions: 18,
@@ -13,8 +13,8 @@ const EXPECTED_COUNTS = {
   users: 40,
   employeeIdentities: 40,
   roles: 3,
-  permissions: 6,
-  rolePermissions: 13, // 6 SUPER_ADMIN + 4 DEPARTMENT_MANAGER + 3 EMPLOYEE
+  permissions: 11,
+  rolePermissions: 27, // Documents : 5 SUPER_ADMIN, 5 DEPARTMENT_MANAGER, 4 EMPLOYEE
   userRoles: 40,
   documentCategories: 6,
   documents: 50,
@@ -70,10 +70,35 @@ describe('Seed complet (intégration)', () => {
 
   const storedFiles = () => readdirSync(storage).sort();
 
-  it('peuple toutes les tables aux volumes de l’étape 2.1', async () => {
+  it('peuple toutes les tables aux volumes attendus en 2.2', async () => {
     const result = runSeed();
     expect(result.status, result.stderr).toBe(0);
     expect(await counts()).toEqual(EXPECTED_COUNTS);
+    expect(await prisma.document.groupBy({ by: ['validationStatus'], _count: true })).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ validationStatus: 'PENDING' }),
+        expect.objectContaining({ validationStatus: 'VALIDATED' }),
+        expect.objectContaining({ validationStatus: 'REJECTED' }),
+      ]),
+    );
+  });
+
+  it('attribue les permissions Documents selon la matrice de l’étape 2.2', async () => {
+    expect(runSeed().status).toBe(0);
+    const permissionsFor = async (username: string) => {
+      const assignments = await prisma.rolePermission.findMany({
+        where: { role: { userRoles: { some: { user: { username } } } } },
+        include: { permission: true },
+      });
+      return assignments
+        .filter(({ permission }) => permission.resource === 'documents')
+        .map(({ permission }) => permission.action)
+        .sort();
+    };
+
+    expect(await permissionsFor('m.keita')).toEqual(['delete', 'read', 'share', 'validate', 'write']);
+    expect(await permissionsFor('f.camara')).toEqual(['delete', 'read', 'share', 'validate', 'write']);
+    expect(await permissionsFor('m.diallo')).toEqual(['delete', 'read', 'share', 'write']);
   });
 
   it('lancé deux fois : aucun doublon, mêmes fichiers', async () => {

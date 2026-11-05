@@ -105,6 +105,18 @@ function buildEmployees(): EmployeeSeed[] {
 
 export const EMPLOYEES: EmployeeSeed[] = buildEmployees();
 
+const DOCUMENT_PERMISSION_SEEDS = [
+  { resource: 'documents', action: 'read', description: 'Consulter les documents autorisés' },
+  { resource: 'documents', action: 'write', description: 'Déposer des documents' },
+  { resource: 'documents', action: 'validate', description: 'Valider ou rejeter des documents' },
+  { resource: 'documents', action: 'share', description: 'Gérer le partage des documents' },
+  { resource: 'documents', action: 'delete', description: 'Supprimer les documents autorisés' },
+] as const;
+
+const DOCUMENT_PERMISSION_KEYS = DOCUMENT_PERMISSION_SEEDS.map(
+  ({ resource, action }) => `${resource}:${action}`,
+);
+
 // Rôles à l'étape 2.1 : seuls les 3 rôles MVP 1 (M3) ; m.keita SA, f.camara DM, les autres EMP
 const ROLE_BY_USERNAME: Record<string, string> = {
   'm.keita': 'SUPER_ADMIN',
@@ -120,6 +132,16 @@ export const USERS: UserSeed[] = EMPLOYEES.map((e) => {
 
 export const ORGANISATION: OrganisationDataset = {
   ...MVP1_DATA,
+  permissions: [...MVP1_DATA.permissions, ...DOCUMENT_PERMISSION_SEEDS],
+  rolePermissions: {
+    ...MVP1_DATA.rolePermissions,
+    SUPER_ADMIN: [...MVP1_DATA.rolePermissions.SUPER_ADMIN, ...DOCUMENT_PERMISSION_KEYS],
+    DEPARTMENT_MANAGER: [...MVP1_DATA.rolePermissions.DEPARTMENT_MANAGER, ...DOCUMENT_PERMISSION_KEYS],
+    EMPLOYEE: [
+      ...MVP1_DATA.rolePermissions.EMPLOYEE,
+      ...DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate'),
+    ],
+  },
   positions: POSITIONS,
   employees: EMPLOYEES,
   departmentManagers: DEPARTMENT_HEADS,

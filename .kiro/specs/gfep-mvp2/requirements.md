@@ -159,7 +159,8 @@ Ce document définit les exigences du MVP 2 de GFEP, dans l'ordre exact de `06-I
 **Traçabilité :** PRD §4.5, M11.
 
 1. Only the owner or the SA SHALL grant or revoke a `DocumentPermission` (READ, WRITE or DELETE) to a user account. Each change is audited (`document.share`).
-2. Only the owner, holders of a `DELETE` permission, or the SA SHALL delete a document.
+2. The owner or SA SHALL be able to list share recipients for that document through `GET /api/v1/documents/:id/share-recipients`; the response SHALL contain only account ID, username and employee display name.
+3. Only the owner, holders of a `DELETE` permission, or the SA SHALL delete a document.
    - Deletion removes the file and the permissions.
    - It is audited (`document.delete`).
    - The UI requires a confirmation modal.

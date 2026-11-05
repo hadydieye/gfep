@@ -28,6 +28,14 @@ Les entrées marquées **(dérivé — validé le 2026-11-05)** ne viennent d'au
 | 2.3 | `finance_department` : `Transaction.departmentId` et `Invoice.departmentId` nullables, relation vers `Department`, index | Lecture limitée au département du Department Manager | M13 |
 | 2.7 | `ad_auth_event_types` : valeurs `AD_SERVICE_BIND_FAILED`, `AD_USER_NOT_FOUND`, `AD_NO_EMPLOYEE_MATCH`, `AD_NO_ROLE_MAPPING`, `AD_LOCAL_ACCOUNT_CONFLICT` ajoutées à `AuthEventType` | Un événement distinct par étape du flux AD | M23 |
 
+### M28 — Mise en œuvre de T2.2.1
+- La migration additive `document_validation_status` ajoute `DocumentValidationStatus` et `Document.validationStatus` avec le défaut `PENDING`.
+- Le seed attribue de façon déterministe les trois statuts aux documents de démonstration ; aucun compte exact n'est imposé par M7.
+
+### M30 — Destinataires du partage documentaire (clarification utilisateur)
+- Pour fournir le sélecteur de comptes de la fiche document sans avancer l'écran `/access/users` de 2.4, 2.2 ajoute `GET /documents/:id/share-recipients`.
+- La route exige `documents:share` et ne retourne des destinataires qu'au propriétaire du document ou au SUPER_ADMIN. Elle exclut le compte appelant et renvoie uniquement l'identifiant, l'identifiant de connexion et le nom de l'employé.
+
 ---
 
 ## 2.1 — Seed complet

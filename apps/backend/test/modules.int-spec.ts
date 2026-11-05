@@ -56,17 +56,32 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
       const rh = await department('RH');
       const response = await get('/dashboard', cookies.manager);
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({
+      expect(response.body).toMatchObject({
         role: 'DEPARTMENT_MANAGER',
         indicators: { departmentEmployees: await activeCount(rh.id), departmentName: 'Ressources humaines' },
         recentActivity: [],
       });
+      const expectedPending = await prisma.document.findMany({
+        where: {
+          validationStatus: 'PENDING',
+          category: { is: { departmentId: rh.id } },
+        },
+        select: { id: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(response.body.pendingDocuments.map((item: { id: string }) => item.id)).toEqual(
+        expectedPending.map(({ id }) => id),
+      );
     });
 
     it('EMPLOYEE : aucun indicateur chiffré', async () => {
       const response = await get('/dashboard', cookies.employee);
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({ role: 'EMPLOYEE', indicators: {}, recentActivity: [] });
+      expect(response.body).toMatchObject({ role: 'EMPLOYEE', indicators: {}, recentActivity: [] });
+      const visibleDocuments = await get('/documents?limit=100', cookies.employee);
+      expect(response.body.recentDocuments.map((item: { id: string }) => item.id)).toEqual(
+        visibleDocuments.body.data.slice(0, 5).map((item: { id: string }) => item.id),
+      );
     });
   });
 

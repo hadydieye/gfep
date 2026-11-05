@@ -4,6 +4,7 @@ import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 export const SUPER_ADMIN = 'SUPER_ADMIN';
 export const DEPARTMENT_MANAGER = 'DEPARTMENT_MANAGER';
 export const EMPLOYEE = 'EMPLOYEE';
+export const DOCUMENT_ROLES = [SUPER_ADMIN, DEPARTMENT_MANAGER, EMPLOYEE] as const;
 
 // Rôle le plus élevé de l'utilisateur, utilisé pour le scoping des vues
 export function primaryRole(user: AuthenticatedUser): string {

@@ -4,10 +4,14 @@ import type { ApiResult } from './types';
 // le cookie de session httpOnly est joint automatiquement.
 export async function apiFetch<T>(path: string, init?: RequestInit): Promise<ApiResult<T>> {
   try {
+    const headers = new Headers(init?.headers);
+    if (!(init?.body instanceof FormData) && !headers.has('Content-Type')) {
+      headers.set('Content-Type', 'application/json');
+    }
     const response = await fetch(`/api/v1${path}`, {
       credentials: 'include',
       ...init,
-      headers: { 'Content-Type': 'application/json', ...init?.headers },
+      headers,
     });
     if (!response.ok) {
       const body = await response.json().catch(() => null);

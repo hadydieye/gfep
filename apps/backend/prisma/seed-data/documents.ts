@@ -4,7 +4,11 @@
  * formats PDF 20, PNG 8, JPG 7, DOCX 8, XLSX 7. La répartition est
  * déterministe (permutation d'indices) pour que le seed reste idempotent.
  */
-import { ConfidentialityLevel, DocumentPermissionType } from '@prisma/client';
+import {
+  ConfidentialityLevel,
+  DocumentPermissionType,
+  DocumentValidationStatus,
+} from '@prisma/client';
 
 export type SeedFileFormat = 'pdf' | 'png' | 'jpg' | 'docx' | 'xlsx';
 
@@ -13,6 +17,7 @@ export interface DocumentSeed {
   /** Code du département de la catégorie */
   category: string;
   level: ConfidentialityLevel;
+  validationStatus: DocumentValidationStatus;
   format: SeedFileFormat;
   /** Rang de l'employé propriétaire parmi les employés du département (modulo l'effectif) */
   ownerRank: number;
@@ -72,6 +77,11 @@ export const DOCUMENTS: DocumentSeed[] = ENTRIES.map(({ title, category, rank },
   title,
   category,
   level: LEVELS[(index * 7) % ENTRIES.length],
+  validationStatus: [
+    DocumentValidationStatus.PENDING,
+    DocumentValidationStatus.VALIDATED,
+    DocumentValidationStatus.REJECTED,
+  ][index % 3],
   format: FORMATS[(index * 11) % ENTRIES.length],
   ownerRank: rank,
 }));

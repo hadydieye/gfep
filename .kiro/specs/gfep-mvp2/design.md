@@ -211,6 +211,7 @@ Les « rôles documents » (`DOCUMENT_ROLES`) sont SA, DM et EMP en 2.2, puis to
 | POST | `/documents` | documents:write | multipart (Multer, mémoire, limite 10 Mo) ; signature ; contrôle de catégorie (M11) ; `PENDING` ; écrit le fichier puis la ligne (fichier supprimé si l'insertion échoue) |
 | PATCH | `/documents/:id/validation` | documents:validate | DM du département du document ou SA ; depuis `PENDING` uniquement (sinon 409) ; audit |
 | GET | `/documents/:id/permissions` | documents:share | propriétaire ou SA |
+| GET | `/documents/:id/share-recipients` | documents:share | propriétaire ou SA ; comptes destinataires (id, username, nom affiché) |
 | POST | `/documents/:id/permissions` | documents:share | propriétaire ou SA ; `{ userId, permission }` ; unicité ; audit ; notification (2.5) |
 | DELETE | `/documents/:id/permissions/:permissionId` | documents:share | propriétaire ou SA ; audit |
 | DELETE | `/documents/:id` | documents:delete | propriétaire, titulaire d'une permission `DELETE`, ou SA ; transaction (ligne + permissions + audit) puis suppression du fichier |

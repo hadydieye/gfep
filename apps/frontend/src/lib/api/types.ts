@@ -1,6 +1,8 @@
 // Types des réponses de l'API backend (/api/v1)
 
 export type EmploymentStatus = 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
+export type ConfidentialityLevel = 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL' | 'RESTRICTED';
+export type DocumentValidationStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
 
 export type RoleName = 'SUPER_ADMIN' | 'DEPARTMENT_MANAGER' | 'EMPLOYEE';
 
@@ -27,6 +29,8 @@ export interface DashboardData {
     departmentName?: string;
   };
   recentActivity: [];
+  recentDocuments?: Array<{ id: string; title: string; createdAt: string }>;
+  pendingDocuments?: Array<{ id: string; title: string; createdAt: string }>;
 }
 
 export interface Employee {
@@ -75,6 +79,56 @@ export interface DepartmentDetail extends Department {
     position: string;
     employmentStatus: EmploymentStatus;
   }>;
+}
+
+export interface DocumentItem {
+  id: string;
+  title: string;
+  description: string | null;
+  category: { id: string; name: string };
+  department: { id: string; name: string };
+  owner: { id: string; firstName: string; lastName: string };
+  mimeType: string;
+  fileSize: number;
+  confidentialityLevel: ConfidentialityLevel;
+  validationStatus: DocumentValidationStatus;
+  createdAt: string;
+  capabilities: {
+    canDownload: boolean;
+    canPreview: boolean;
+    canValidate: boolean;
+    canShare: boolean;
+    canDelete: boolean;
+  };
+}
+
+export interface PaginatedDocuments {
+  data: DocumentItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface DocumentCategory {
+  id: string;
+  name: string;
+  department: { id: string; name: string } | null;
+  canUpload: boolean;
+}
+
+export interface DocumentSharePermission {
+  id: string;
+  userId: string;
+  username: string;
+  employee: { firstName: string; lastName: string } | null;
+  permission: 'READ' | 'WRITE' | 'DELETE';
+  grantedAt: string;
+}
+
+export interface DocumentShareRecipient {
+  id: string;
+  username: string;
+  displayName: string;
 }
 
 export type ApiResult<T> =

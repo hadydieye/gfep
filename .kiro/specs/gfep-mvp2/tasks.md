@@ -73,62 +73,63 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
 
 ## Étape 2.2 — Module Documents
 
-- [ ] T2.2.1 — Migration `document_validation_status`
+- [x] T2.2.1 — Migration `document_validation_status`
   - Enum `DocumentValidationStatus` et `Document.validationStatus` (défaut `PENDING`).
   - Mise à jour de `05` §3, de `schema.spec.ts` (12 enums) et de `DECISIONS.md`.
   - Extension de seed : statuts répartis.
   - _→ R7.1, T5, M2, M7_
-- [ ] T2.2.2 — `AuditModule` global et `AuditService.record(tx, entry)`
+- [x] T2.2.2 — `AuditModule` global et `AuditService.record(tx, entry)`
   - Liste blanche de champs par type de ressource ; aucun secret.
   - Test unitaire de la liste blanche.
   - _→ R6.2, M12_
-- [ ] T2.2.3 — Permissions documents dans le seed
+- [x] T2.2.3 — Permissions documents dans le seed
   - `documents:read`, `write`, `share`, `delete` pour SA, DM et EMP.
   - `documents:validate` pour SA et DM.
   - Constante `DOCUMENT_ROLES` dans `rbac/roles.ts`.
   - _→ M24, design §2_
-- [ ] T2.2.4 — `document-storage.ts` et `file-signature.ts`
+- [x] T2.2.4 — `document-storage.ts` et `file-signature.ts`
   - Installer `file-type`.
   - Liste blanche PDF, DOCX, XLSX, PNG, JPEG.
   - Contrôle du chemin résolu sous `DOCUMENTS_STORAGE_DIR`.
   - Tests unitaires : signatures valides, exécutable renommé, ZIP non OOXML, chemin hors racine.
   - _→ R5.2, R5.5, M10_
-- [ ] T2.2.5 — `document-access.ts`
+- [x] T2.2.5 — `document-access.ts`
   - `buildVisibilityWhere(user)`, `canValidate`, `canShare`, `canDelete`.
   - Tests unitaires pour chaque branche de M8 et M9.
   - _→ R4, R7.2, R8, M8, M9, M11_
-- [ ] T2.2.6 — DTO et `DocumentsService` : liste, détail, catégories, upload, téléchargement, aperçu
+- [x] T2.2.6 — DTO et `DocumentsService` : liste, détail, catégories, upload, téléchargement, aperçu
   - Audit `document.view` et `document.download` pour les documents sensibles.
   - En cas d'échec d'insertion, le fichier est supprimé.
   - _→ R4–R6_
-- [ ] T2.2.7 — `DocumentsService` : validation, partage et suppression
+- [x] T2.2.7 — `DocumentsService` : validation, partage et suppression
+  - `GET /documents/:id/share-recipients` : liste minimale des comptes, propriétaire ou SA uniquement (M30).
   - Transactions et audits.
   - Point d'appel de notification prévu (sans effet avant 2.5).
   - _→ R7, R8_
-- [ ] T2.2.8 — `DocumentsController`
+- [x] T2.2.8 — `DocumentsController`
   - Routes de design §4.3, chacune avec `@Roles(...DOCUMENT_ROLES)` et `@Permission`.
   - Multer en mémoire, limite de 10 Mo.
   - _→ R4–R8, T1_
-- [ ] T2.2.9 — Composants ui
+- [x] T2.2.9 — Composants ui
   - `ui/dialog.tsx` (`ConfirmDialog`), `ui/file-input.tsx`, `ConfidentialityBadge`, `ValidationBadge`.
   - Tests de mapping des badges et de la modale destructive (pas de fermeture au clic extérieur).
   - _→ T4, design §10_
-- [ ] T2.2.10 — Écran `/documents`
+- [x] T2.2.10 — Écran `/documents`
   - Liste avec filtres et pagination ; états squelette, vide (avec action), erreur.
   - Entrée « Documents » dans la sidebar.
   - _→ R9.1, R9.5_
-- [ ] T2.2.11 — Écran `/documents/[id]`
+- [x] T2.2.11 — Écran `/documents/[id]`
   - Métadonnées, aperçu, téléchargement, validation, partage, suppression (`ConfirmDialog`), toasts.
   - 403 et 404 distincts.
   - _→ R9.2_
-- [ ] T2.2.12 — Écran `/documents/upload`
+- [x] T2.2.12 — Écran `/documents/upload`
   - React Hook Form + Zod, catégories avec `canUpload`, redirection et toast.
   - _→ R5, R9.1_
-- [ ] T2.2.13 — Dashboard
+- [x] T2.2.13 — Dashboard
   - Retrait des cartes « disponible prochainement » (M25).
   - « Mes documents récents » (EMP) et « Documents en attente de validation » (DM), alimentés par l'API.
   - _→ R9.3, R9.4, M25_
-- [ ] T2.2.14 — `test/documents.int-spec.ts`
+- [x] T2.2.14 — `test/documents.int-spec.ts`
   - Matrice de rôles par route.
   - Visibilité (4 niveaux, propriétaire, partage, département de la catégorie ou du propriétaire).
   - 404 généralisé.
@@ -138,9 +139,9 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
   - Partage et suppression.
   - Audits sensibles uniquement.
   - _→ T2, R4–R8_
-- [ ] T2.2.15 — Critère de passage 2.2
+- [x] T2.2.15 — Critère de passage 2.2
   - Test automatisé avec deux EMPLOYEE de départements différents : chacun ne voit que ses documents de département, les documents publics, les siens et ceux qui lui sont partagés.
-  - Validation manuelle utilisateur : ☐ (non cochée par l'agent).
+  - Validation manuelle utilisateur : ☑ (confirmée par l'utilisateur le 2026-11-05).
   - `PROGRESS.md`.
   - _→ R10_
 

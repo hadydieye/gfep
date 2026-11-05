@@ -4,10 +4,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
 import { AuthModule } from './auth/auth.module.js';
+import { AuditModule } from './audit/audit.module.js';
 import { SessionGuard } from './auth/session.guard.js';
 import { SessionMiddleware } from './auth/session.middleware.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { DepartmentsModule } from './departments/departments.module.js';
+import { DocumentsModule } from './documents/documents.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
@@ -25,8 +27,10 @@ import { RbacModule } from './rbac/rbac.module.js';
     PrismaModule,
     HealthModule,
     AuthModule,
+    AuditModule,
     RbacModule,
     DashboardModule,
+    DocumentsModule,
     EmployeesModule,
     DepartmentsModule,
   ],

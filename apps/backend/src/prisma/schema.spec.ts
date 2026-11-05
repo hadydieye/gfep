@@ -40,6 +40,7 @@ const EXPECTED_ENUMS = [
   'EmploymentStatus',
   'ConfidentialityLevel',
   'DocumentPermissionType',
+  'DocumentValidationStatus',
   'TransactionType',
   'TransactionStatus',
   'InvoiceStatus',
@@ -62,7 +63,7 @@ describe('Prisma schema verification', () => {
     expect(modelMatches?.length).toBe(22);
   });
 
-  it('should contain all 11 enum declarations', () => {
+  it('should contain all 12 enum declarations', () => {
     for (const enumName of EXPECTED_ENUMS) {
       expect(schemaContent, `Enum "${enumName}" not found in schema.prisma`).toMatch(
         new RegExp(`^enum ${enumName}\\s*\\{`, 'm'),
@@ -70,9 +71,9 @@ describe('Prisma schema verification', () => {
     }
   });
 
-  it('should have exactly 11 enum declarations', () => {
+  it('should have exactly 12 enum declarations', () => {
     const enumMatches = schemaContent.match(/^enum \w+\s*\{/gm);
-    expect(enumMatches?.length).toBe(11);
+    expect(enumMatches?.length).toBe(12);
   });
 
   it('should not contain a hardcoded postgresql:// connection string', () => {

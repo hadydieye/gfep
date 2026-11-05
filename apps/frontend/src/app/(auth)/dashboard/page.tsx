@@ -1,8 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
-  Activity,
-  Bell,
   Building2,
   FileClock,
   FileText,
@@ -11,6 +9,7 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { DashboardCard } from '@/components/dashboard/dashboard-card';
 import { ErrorState } from '@/components/states/states';
 import { apiGet } from '@/lib/api/server';
@@ -35,7 +34,7 @@ export default async function DashboardPage() {
       <div className={GRID}>
         {result.data.role === 'SUPER_ADMIN' && <AdminCards data={result.data} />}
         {result.data.role === 'DEPARTMENT_MANAGER' && <ManagerCards data={result.data} />}
-        {result.data.role === 'EMPLOYEE' && <EmployeeCards user={user} />}
+        {result.data.role === 'EMPLOYEE' && <EmployeeCards user={user} data={result.data} />}
       </div>
     </div>
   );
@@ -50,9 +49,6 @@ function AdminCards({ data }: { data: DashboardData }) {
         value={data.indicators.totalEmployees ?? 0}
         subtitle="Employés actifs"
       />
-      <DashboardCard label="Activité récente" icon={Activity}>
-        <p className="text-sm text-foreground-secondary">Aucune activité récente.</p>
-      </DashboardCard>
       <DashboardCard label="Accès rapides" icon={Zap}>
         <ul className="flex flex-col gap-2 text-sm">
           <li>
@@ -81,19 +77,22 @@ function ManagerCards({ data }: { data: DashboardData }) {
         subtitle="Employés actifs du département"
       />
       <DashboardCard
-        label="Indicateurs du département"
+        label="Département"
         icon={LineChart}
         value={<span className="text-xl">{data.indicators.departmentName ?? '—'}</span>}
-        subtitle="Indicateurs détaillés disponibles prochainement"
+        subtitle="Votre périmètre de gestion"
       />
-      <DashboardCard label="Documents en attente" icon={FileClock}>
-        <p className="text-sm text-foreground-secondary">Module documents disponible prochainement.</p>
-      </DashboardCard>
+      <DocumentListCard
+        label="Documents en attente de validation"
+        icon={FileClock}
+        documents={data.pendingDocuments ?? []}
+        emptyMessage="Aucun document en attente de validation."
+      />
     </>
   );
 }
 
-function EmployeeCards({ user }: { user: AuthUser }) {
+function EmployeeCards({ user, data }: { user: AuthUser; data: DashboardData }) {
   return (
     <>
       <DashboardCard label="Mes informations" icon={IdCard}>
@@ -120,12 +119,50 @@ function EmployeeCards({ user }: { user: AuthUser }) {
           </Link>
         )}
       </DashboardCard>
-      <DashboardCard label="Mes documents récents" icon={FileText}>
-        <p className="text-sm text-foreground-secondary">Module documents disponible prochainement.</p>
-      </DashboardCard>
-      <DashboardCard label="Mes notifications" icon={Bell}>
-        <p className="text-sm text-foreground-secondary">Aucune notification.</p>
-      </DashboardCard>
+      <DocumentListCard
+        label="Mes documents récents"
+        icon={FileText}
+        documents={data.recentDocuments ?? []}
+        emptyMessage="Aucun document récent."
+      />
     </>
+  );
+}
+
+function DocumentListCard({
+  label,
+  icon,
+  documents,
+  emptyMessage,
+}: {
+  label: string;
+  icon: LucideIcon;
+  documents: Array<{ id: string; title: string; createdAt: string }>;
+  emptyMessage: string;
+}) {
+  return (
+    <DashboardCard label={label} icon={icon}>
+      {documents.length === 0 ? (
+        <p className="text-sm text-foreground-secondary">{emptyMessage}</p>
+      ) : (
+        <ul className="flex flex-col gap-2 text-sm">
+          {documents.map((document) => (
+            <li key={document.id} className="flex items-baseline justify-between gap-3">
+              <Link
+                href={`/documents/${document.id}`}
+                className="min-w-0 truncate font-medium text-link hover:underline"
+              >
+                {document.title}
+              </Link>
+              <time className="shrink-0 text-xs text-foreground-secondary" dateTime={document.createdAt}>
+                {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(
+                  new Date(document.createdAt),
+                )}
+              </time>
+            </li>
+          ))}
+        </ul>
+      )}
+    </DashboardCard>
   );
 }
