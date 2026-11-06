@@ -5,16 +5,17 @@ import * as argon2 from 'argon2';
 import { resetDatabase, runSeed, testPrisma } from './helpers.js';
 import { testStorageDir } from './setup/test-database.js';
 
-// Volumes après T2.2.3 (gfep-mvp2/DECISIONS.md M24)
+// Volumes après T2.3.2 (gfep-mvp2/DECISIONS.md M6, M24)
 const EXPECTED_COUNTS = {
   departments: 6,
   positions: 18,
   employees: 40,
   users: 40,
   employeeIdentities: 40,
-  roles: 3,
-  permissions: 11,
-  rolePermissions: 27, // Documents : 5 SUPER_ADMIN, 5 DEPARTMENT_MANAGER, 4 EMPLOYEE
+  roles: 4,
+  permissions: 16,
+  // SUPER_ADMIN 16, DEPARTMENT_MANAGER 11, EMPLOYEE 7, ACCOUNTANT 11
+  rolePermissions: 45,
   userRoles: 40,
   documentCategories: 6,
   documents: 50,
@@ -99,6 +100,53 @@ describe('Seed complet (intégration)', () => {
     expect(await permissionsFor('m.keita')).toEqual(['delete', 'read', 'share', 'validate', 'write']);
     expect(await permissionsFor('f.camara')).toEqual(['delete', 'read', 'share', 'validate', 'write']);
     expect(await permissionsFor('m.diallo')).toEqual(['delete', 'read', 'share', 'write']);
+    expect(await permissionsFor('ibrahima.sow')).toEqual(['delete', 'read', 'share', 'write']);
+  });
+
+  it('attribue les permissions finance selon la matrice de l’étape 2.3', async () => {
+    expect(runSeed().status).toBe(0);
+    const financeOf = async (username: string) =>
+      (
+        await prisma.rolePermission.findMany({
+          where: {
+            role: { userRoles: { some: { user: { username } } } },
+            permission: { resource: { in: ['transactions', 'invoices'] } },
+          },
+          include: { permission: true },
+        })
+      )
+        .map(({ permission }) => `${permission.resource}:${permission.action}`)
+        .sort();
+
+    expect(await financeOf('m.keita')).toEqual([
+      'invoices:read',
+      'invoices:status',
+      'transactions:read',
+      'transactions:validate',
+      'transactions:write',
+    ]);
+    expect(await financeOf('ibrahima.sow')).toEqual([
+      'invoices:read',
+      'invoices:status',
+      'transactions:read',
+      'transactions:write',
+    ]);
+    expect(await financeOf('f.camara')).toEqual(['invoices:read', 'transactions:read']);
+    expect(await financeOf('m.diallo')).toEqual([]);
+  });
+
+  it('rattache chaque facture et chaque transaction à un département (M13)', async () => {
+    expect(runSeed().status).toBe(0);
+    expect(await prisma.invoice.count({ where: { departmentId: null } })).toBe(0);
+    expect(await prisma.transaction.count({ where: { departmentId: null } })).toBe(0);
+    const departments = await prisma.department.findMany({
+      include: { _count: { select: { invoices: true, transactions: true } } },
+    });
+    expect(departments).toHaveLength(6);
+    for (const department of departments) {
+      expect(department._count.invoices, department.code).toBe(5);
+      expect(department._count.transactions, department.code).toBeGreaterThanOrEqual(16);
+    }
   });
 
   it('lancé deux fois : aucun doublon, mêmes fichiers', async () => {
@@ -131,7 +179,7 @@ describe('Seed complet (intégration)', () => {
     }
   });
 
-  it('personas et comptes conformes à M5 pour l’étape 2.1', async () => {
+  it('personas et comptes conformes à M5 pour l’étape 2.3', async () => {
     expect(runSeed().status).toBe(0);
     const roleOf = async (username: string) =>
       (
@@ -140,7 +188,9 @@ describe('Seed complet (intégration)', () => {
     expect(await roleOf('m.keita')).toEqual(['SUPER_ADMIN']);
     expect(await roleOf('f.camara')).toEqual(['DEPARTMENT_MANAGER']);
     expect(await roleOf('t.balde')).toEqual(['EMPLOYEE']);
-    expect(await prisma.userRole.count({ where: { role: { name: 'EMPLOYEE' } } })).toBe(38);
+    // M6 : ibrahima.sow reçoit ACCOUNTANT et perd EMPLOYEE
+    expect(await roleOf('ibrahima.sow')).toEqual(['ACCOUNTANT']);
+    expect(await prisma.userRole.count({ where: { role: { name: 'EMPLOYEE' } } })).toBe(37);
     expect(await prisma.user.count({ where: { authProvider: AuthProvider.LOCAL } })).toBe(40);
 
     const keita = await prisma.employee.findUniqueOrThrow({
@@ -167,13 +217,20 @@ describe('Seed complet (intégration)', () => {
     expect(result.status, result.stderr).toBe(0);
 
     const output = `${result.stdout}${result.stderr}`;
-    for (const password of [secret, 'GF_Admin2026!', 'GF_Mgr2026!', 'GF_Emp2026!']) {
+    for (const password of [secret, 'GF_Admin2026!', 'GF_Mgr2026!', 'GF_Emp2026!', 'GF_Acc2026!']) {
       expect(output).not.toContain(password);
     }
     const employee = await prisma.user.findUniqueOrThrow({ where: { username: 'm.diallo' } });
     expect(await argon2.verify(employee.passwordHash!, secret)).toBe(true);
     const admin = await prisma.user.findUniqueOrThrow({ where: { username: 'm.keita' } });
     expect(await argon2.verify(admin.passwordHash!, 'GF_Admin2026!')).toBe(true);
+
+    const accountantSecret = 'Seed-Test-Acc-7b21';
+    const accountantRun = runSeed({ SEED_PASSWORD_ACCOUNTANT: accountantSecret });
+    expect(accountantRun.status, accountantRun.stderr).toBe(0);
+    expect(`${accountantRun.stdout}${accountantRun.stderr}`).not.toContain(accountantSecret);
+    const accountant = await prisma.user.findUniqueOrThrow({ where: { username: 'ibrahima.sow' } });
+    expect(await argon2.verify(accountant.passwordHash!, accountantSecret)).toBe(true);
   });
 
   it('refusé quand NODE_ENV=production : code non nul, message explicite, aucune écriture', async () => {

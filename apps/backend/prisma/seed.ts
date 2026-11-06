@@ -2,8 +2,8 @@
  * Seed complet GFEP (gfep-mvp2/DECISIONS.md M3, M4, M5, M10), commande
  * `npx prisma db seed`. Étend le jeu MVP 1 sans doublon : 6 départements,
  * 18 postes, 40 employés, 40 comptes locaux, 6 catégories, 50 documents avec
- * fichiers réels, 30 factures, 100 transactions. Rôles : les 3 rôles MVP 1
- * à l'étape 2.1 (étendus en 2.3 et 2.4).
+ * fichiers réels, 30 factures et 100 transactions rattachées à un département.
+ * Rôles : les 3 rôles MVP 1 et ACCOUNTANT (étape 2.3) ; les 4 autres en 2.4.
  *
  * Idempotent. Réservé au développement : refuse NODE_ENV=production. Les mots
  * de passe de démonstration (SEED_PASSWORD_<ROLE>) ne sont jamais loggés.
@@ -84,6 +84,7 @@ async function seedFinance(prisma: PrismaClient, org: SeededOrganisation) {
       dueDate: new Date(i.dueDate),
       status: i.status,
       createdAt: new Date(i.createdAt),
+      departmentId: org.departmentIds.get(i.department)!,
     };
     await prisma.invoice.upsert({
       where: { invoiceNumber: i.invoiceNumber },
@@ -98,6 +99,7 @@ async function seedFinance(prisma: PrismaClient, org: SeededOrganisation) {
       description: t.description,
       status: t.status,
       createdAt: new Date(t.createdAt),
+      departmentId: org.departmentIds.get(t.department)!,
     };
     await prisma.transaction.upsert({
       where: { reference: t.reference },

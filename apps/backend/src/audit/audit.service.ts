@@ -12,6 +12,8 @@ const AUDIT_FIELDS: Record<string, readonly string[]> = {
     'validationStatus',
   ],
   DocumentPermission: ['documentId', 'userId', 'permission'],
+  Transaction: ['reference', 'transactionType', 'amount', 'currency', 'status', 'departmentId'],
+  Invoice: ['invoiceNumber', 'status', 'departmentId'],
 };
 
 export interface AuditEntry {

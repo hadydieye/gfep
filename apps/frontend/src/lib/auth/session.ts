@@ -22,6 +22,7 @@ export function hasPermission(user: AuthUser, resource: string, action: string):
 // Rôle le plus élevé, aligné sur le scoping backend
 export function primaryRole(user: AuthUser): RoleName {
   if (hasRole(user, 'SUPER_ADMIN')) return 'SUPER_ADMIN';
+  if (hasRole(user, 'ACCOUNTANT')) return 'ACCOUNTANT';
   if (hasRole(user, 'DEPARTMENT_MANAGER')) return 'DEPARTMENT_MANAGER';
   return 'EMPLOYEE';
 }

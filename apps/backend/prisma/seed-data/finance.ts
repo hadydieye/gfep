@@ -1,6 +1,7 @@
 /**
  * 30 factures et 100 transactions fictives (gfep-mvp2/design.md §3.2), en GNF.
- * Données déterministes. Le `departmentId` est ajouté à l'étape 2.3 (M13).
+ * Données déterministes. Chaque ligne est rattachée à un département (M13),
+ * réparti à tour de rôle sur les 6 départements.
  */
 import { InvoiceStatus, TransactionStatus, TransactionType } from '@prisma/client';
 
@@ -11,6 +12,8 @@ export interface InvoiceSeed {
   dueDate: string;
   status: InvoiceStatus;
   createdAt: string;
+  /** Code du département de rattachement (M13) */
+  department: string;
 }
 
 export interface TransactionSeed {
@@ -20,7 +23,12 @@ export interface TransactionSeed {
   description: string;
   status: TransactionStatus;
   createdAt: string;
+  /** Code du département de rattachement (M13) */
+  department: string;
 }
+
+// Ordre de répartition des lignes sur les départements (M13)
+export const FINANCE_DEPARTMENTS = ['DG', 'RH', 'CF', 'IT', 'CO', 'AC'] as const;
 
 // Raisons sociales fictives
 const CLIENTS = [
@@ -50,6 +58,7 @@ export const INVOICES: InvoiceSeed[] = Array.from({ length: 30 }, (_, index) => 
     dueDate: day(Math.min(month + 1, 12), 28),
     status: INVOICE_STATUSES[(index * 7) % 30],
     createdAt: day(month, ((index * 3) % 27) + 1),
+    department: FINANCE_DEPARTMENTS[index % FINANCE_DEPARTMENTS.length],
   };
 });
 
@@ -73,5 +82,6 @@ export const TRANSACTIONS: TransactionSeed[] = Array.from({ length: 100 }, (_, i
     description: `${labels[index % labels.length]} — opération ${index + 1}`,
     status: TRANSACTION_STATUSES[(index * 13) % 100],
     createdAt: day((index % 10) + 1, ((index * 7) % 27) + 1),
+    department: FINANCE_DEPARTMENTS[index % FINANCE_DEPARTMENTS.length],
   };
 });

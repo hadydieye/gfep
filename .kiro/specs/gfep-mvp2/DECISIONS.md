@@ -2,7 +2,7 @@
 
 Ce fichier complète `.kiro/specs/gfep-lot0-mvp1/DECISIONS.md` (Phase 0 et MVP 1, entrées C1–C4, D1–D10, I1–I22), toujours en vigueur. Les entrées ci-dessous sont numérotées M1, M2… Leur source est indiquée : réponse de l'utilisateur (Q0–Q19 et clarifications du 2026-11-05), document de référence, ou règle dérivée.
 
-Les entrées marquées **(dérivé — validé le 2026-11-05)** ne viennent d'aucun document ni d'aucune réponse explicite. Je les ai déduites des règles générales (interdiction par défaut, aucune vulnérabilité, sécurité). Elles doivent être confirmées lors de la validation de cette spec.
+Les entrées marquées **(dérivé — validé le 2026-11-05)** ne viennent d'aucun document ni d'aucune réponse explicite. Je les ai déduites des règles générales (interdiction par défaut, aucune vulnérabilité, sécurité). Elles ont été confirmées par l'utilisateur lors de la validation de cette spec, le 2026-11-05.
 
 ---
 
@@ -12,6 +12,7 @@ Les entrées marquées **(dérivé — validé le 2026-11-05)** ne viennent d'au
 - Le MVP 2 suit l'ordre exact de `06-Implementation-Plan.md` : 2.1 → 2.7, sans réordonnancement, fusion ni saut.
 - Une étape ne commence que si le critère de passage de la précédente est vérifié concrètement.
 - Aucune vulnérabilité volontaire, aucun `LAB_MODE` / `APP_MODE`, aucun vrai Active Directory.
+  - **Note — contradiction ouverte :** l'étape 3.3 de `06-Implementation-Plan.md` demande de mettre en place le flag `APP_MODE` (TRD §4). M1 l'exclut pour le MVP 2 uniquement. Le sort d'`APP_MODE` en 3.3 est **à trancher avant l'étape 3.3**, pas maintenant.
 - Les règles de `gfep-lot0-mvp1/DECISIONS.md` restent valables, en particulier :
   - I15 : interdiction par défaut ;
   - I17 : 400 génériques ;
@@ -27,14 +28,6 @@ Les entrées marquées **(dérivé — validé le 2026-11-05)** ne viennent d'au
 | 2.2 | `document_validation_status` : enum `DocumentValidationStatus` (`PENDING`, `VALIDATED`, `REJECTED`) + `Document.validationStatus` (défaut `PENDING`) | Validation des documents | M7 |
 | 2.3 | `finance_department` : `Transaction.departmentId` et `Invoice.departmentId` nullables, relation vers `Department`, index | Lecture limitée au département du Department Manager | M13 |
 | 2.7 | `ad_auth_event_types` : valeurs `AD_SERVICE_BIND_FAILED`, `AD_USER_NOT_FOUND`, `AD_NO_EMPLOYEE_MATCH`, `AD_NO_ROLE_MAPPING`, `AD_LOCAL_ACCOUNT_CONFLICT` ajoutées à `AuthEventType` | Un événement distinct par étape du flux AD | M23 |
-
-### M28 — Mise en œuvre de T2.2.1
-- La migration additive `document_validation_status` ajoute `DocumentValidationStatus` et `Document.validationStatus` avec le défaut `PENDING`.
-- Le seed attribue de façon déterministe les trois statuts aux documents de démonstration ; aucun compte exact n'est imposé par M7.
-
-### M30 — Destinataires du partage documentaire (clarification utilisateur)
-- Pour fournir le sélecteur de comptes de la fiche document sans avancer l'écran `/access/users` de 2.4, 2.2 ajoute `GET /documents/:id/share-recipients`.
-- La route exige `documents:share` et ne retourne des destinataires qu'au propriétaire du document ou au SUPER_ADMIN. Elle exclut le compte appelant et renvoie uniquement l'identifiant, l'identifiant de connexion et le nom de l'employé.
 
 ---
 
@@ -159,6 +152,14 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 - L'écriture est **synchrone, dans la même transaction que l'action** quand l'action est transactionnelle (exigée par Q13). Le TRD §3.4 « asynchrone » vise les logs structurés (Pino), reportés à 3.3 (M20).
 - Les journaux sont **immuables** : aucune route de modification ni de suppression. Pour le SUPER_ADMIN, « gestion » (AppFlow §3.10) se limite au filtrage. **(dérivé — validé le 2026-11-05)**
 
+### M28 — Mise en œuvre de T2.2.1
+- La migration additive `document_validation_status` ajoute `DocumentValidationStatus` et `Document.validationStatus` avec le défaut `PENDING`.
+- Le seed attribue de façon déterministe les trois statuts aux documents de démonstration ; aucun compte exact n'est imposé par M7.
+
+### M29 — Destinataires du partage documentaire (clarification utilisateur)
+- Pour fournir le sélecteur de comptes de la fiche document sans avancer l'écran `/access/users` de 2.4, 2.2 ajoute `GET /documents/:id/share-recipients`.
+- La route exige `documents:share` et ne retourne des destinataires qu'au propriétaire du document ou au SUPER_ADMIN. Elle exclut le compte appelant et renvoie uniquement l'identifiant, l'identifiant de connexion et le nom de l'employé.
+
 ---
 
 ## 2.3 — Finance
@@ -185,6 +186,34 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 **Montants :**
 - `Decimal(14,2)` en base, sérialisés en **chaîne** dans l'API pour éviter les arrondis flottants.
 - Devise `GNF`, affichée au format `fr-FR`.
+
+### M30 — Mise en œuvre de l'étape 2.3 (2026-11-05)
+**Migration et seed (T2.3.1) :**
+- La migration additive `finance_department` ajoute `departmentId` (nullable, index, clé étrangère vers `departments`) à `transactions` et `invoices`. `05-Backend-Schema.md` §3 et `schema.spec.ts` sont mis à jour.
+- Le seed rattache chaque facture et chaque transaction à un département, à tour de rôle (DG, RH, CF, IT, CO, AC) : 5 factures et 16 ou 17 transactions par département. Aucune ligne du seed n'est sans département ; ce cas est couvert par les tests.
+
+**Rôle ACCOUNTANT (T2.3.2) :**
+- Mot de passe de démonstration par défaut `GF_Acc2026!`, surchargeable par `SEED_PASSWORD_ACCOUNTANT` (ajouté à `.env.example`), comme M4.
+- Permissions attribuées dès 2.3 selon la matrice finale (design §2) : `dashboard:read`, `employees:read`, `departments:read`, `documents:read/write/share/delete`, `transactions:read/write`, `invoices:read/status` (11).
+- **Écart nécessaire :** `ibrahima.sow` perd EMPLOYEE (M6). Sans ces permissions et sans ACCOUNTANT dans les `@Roles` des routes de lecture existantes, il n'aurait plus accès au dashboard (T2.3.8). ACCOUNTANT est donc ajouté dès 2.3 aux routes dashboard, `GET /employees`, `GET /employees/:id`, `GET /departments`, `GET /departments/:id` (constante `READ_ROLES`) et aux routes documents (`DOCUMENT_ROLES`). Les 4 autres rôles restent pour T2.4.3.
+- Volumes après 2.3 : 4 rôles, 16 permissions, 45 liaisons rôle-permission.
+- Rôle principal (I6), backend et frontend : SUPER_ADMIN > ACCOUNTANT > DEPARTMENT_MANAGER > EMPLOYEE.
+
+**API (T2.3.3, T2.3.4) :**
+- Scope de lecture : SUPER_ADMIN et ACCOUNTANT voient tout ; un DEPARTMENT_MANAGER voit uniquement son département, appliqué dans la requête Prisma, y compris quand un filtre `departmentId` est fourni. Une facture hors scope renvoie 404.
+- Référence `TRX-{AAAA}-{NNNNN}` : 5 essais au total ; au-delà, 409 « Impossible d'attribuer une référence de transaction. Réessayez. ».
+- Une transaction hors `PENDING` renvoie 409 « Cette action n'est pas possible dans l'état actuel. » (design §11). Un statut cible autre que `VALIDATED` ou `REJECTED` renvoie 400 générique.
+- Une transition de facture interdite, y compris vers le même statut, renvoie 400 « Ce changement de statut n'est pas autorisé pour cette facture. » (18 transitions interdites, chacune testée). Un changement concurrent sur la même facture renvoie 409.
+- Un département inexistant à la création renvoie 400 « Département inexistant. », comme pour les employés.
+- La réponse d'une facture expose `allowedTransitions` (vide sans `invoices:status`) : l'écran ne propose que ces statuts, le backend reste seul juge.
+- Filtres de période (`from`/`to`, `dueFrom`/`dueTo`) : dates `AAAA-MM-JJ`, bornes incluses, en UTC.
+- Audit : `transaction.create`, `transaction.status_change`, `invoice.status_change`, dans la transaction de l'action. Champs en liste blanche : référence, type, montant (chaîne), devise, statut, département (Transaction) ; numéro, statut, département (Invoice). Les lectures ne sont pas journalisées.
+
+**Interface (T2.3.5 à T2.3.8) :**
+- `MoneyAmount` formate la chaîne reçue sans conversion en nombre flottant (partie entière en `BigInt`). Les décimales ne sont affichées que si elles sont non nulles, comme le format `fr-FR` du GNF.
+- Le formulaire de transaction accepte la saisie française (« 1 500 000,50 ») et la normalise en chaîne décimale avant l'envoi.
+- Sidebar : entrée « Finance » (icône `Wallet`) non cliquable, avec les sous-liens accessibles (Transactions, Factures). Sur mobile, l'icône mène au premier sous-lien accessible.
+- Dashboard ACCOUNTANT : recettes et dépenses **validées** du mois civil courant (UTC), 5 transactions les plus récentes, factures `SENT` et `OVERDUE` (nombre total et 5 premières par échéance). Le seed ne contient aucune transaction du mois de novembre 2026 : les indicateurs du mois valent 0 sur la base de dev tant qu'aucune transaction n'est validée. Le dashboard consolidé du SUPER_ADMIN reste pour T2.4.11.
 
 ---
 

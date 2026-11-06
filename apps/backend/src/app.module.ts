@@ -11,6 +11,7 @@ import { DashboardModule } from './dashboard/dashboard.module.js';
 import { DepartmentsModule } from './departments/departments.module.js';
 import { DocumentsModule } from './documents/documents.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
+import { FinanceModule } from './finance/finance.module.js';
 import { HealthModule } from './health/health.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { PermissionGuard } from './rbac/guards/permission.guard.js';
@@ -33,6 +34,7 @@ import { RbacModule } from './rbac/rbac.module.js';
     DocumentsModule,
     EmployeesModule,
     DepartmentsModule,
+    FinanceModule,
   ],
   // Interdiction par défaut : session, puis rôle, puis permission, sur toutes les routes.
   // Exceptions explicites : @Public() et @AuthenticatedOnly().

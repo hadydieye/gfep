@@ -73,6 +73,7 @@ const DEFAULT_PASSWORDS: Record<string, string> = {
   SUPER_ADMIN: 'GF_Admin2026!',
   DEPARTMENT_MANAGER: 'GF_Mgr2026!',
   EMPLOYEE: 'GF_Emp2026!',
+  ACCOUNTANT: 'GF_Acc2026!',
 };
 
 /** Un hash argon2 par rôle et par exécution ; les mots de passe ne sont jamais loggés. */

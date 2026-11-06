@@ -102,7 +102,7 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
   - En cas d'échec d'insertion, le fichier est supprimé.
   - _→ R4–R6_
 - [x] T2.2.7 — `DocumentsService` : validation, partage et suppression
-  - `GET /documents/:id/share-recipients` : liste minimale des comptes, propriétaire ou SA uniquement (M30).
+  - `GET /documents/:id/share-recipients` : liste minimale des comptes, propriétaire ou SA uniquement (M29).
   - Transactions et audits.
   - Point d'appel de notification prévu (sans effet avant 2.5).
   - _→ R7, R8_
@@ -149,39 +149,39 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
 
 ## Étape 2.3 — Module Finance
 
-- [ ] T2.3.1 — Migration `finance_department`
+- [x] T2.3.1 — Migration `finance_department`
   - `departmentId` nullable, relation et index sur `Transaction` et `Invoice`.
   - Mise à jour de `05` §3 et de `DECISIONS.md`.
   - Extension de seed : `departmentId` réparti.
   - _→ R11.2, T5, M2, M13_
-- [ ] T2.3.2 — Seed : rôle ACCOUNTANT
+- [x] T2.3.2 — Seed : rôle ACCOUNTANT
   - Permissions finance selon design §2 (SA, ACC, DM).
   - `ibrahima.sow` reçoit ACC (et perd EMP).
   - `SEED_PASSWORD_ACCOUNTANT`.
   - _→ R11.1, M6_
-- [ ] T2.3.3 — Module `finance/` : transactions
+- [x] T2.3.3 — Module `finance/` : transactions
   - Liste (scope DM, filtres).
   - Création (référence `TRX-AAAA-NNNNN` en transaction, avec nouvel essai).
   - Changement de statut réservé au SA.
   - Montants en chaîne ; audits.
   - _→ R12, M13, M14_
-- [ ] T2.3.4 — Module `finance/` : factures
+- [x] T2.3.4 — Module `finance/` : factures
   - Liste et détail (scope DM, 404).
   - Transitions de M14 ; **transition interdite → 400** ; audit.
   - _→ R13, M14_
-- [ ] T2.3.5 — Composants `TransactionStatusBadge`, `InvoiceStatusBadge`, `MoneyAmount`, avec tests
+- [x] T2.3.5 — Composants `TransactionStatusBadge`, `InvoiceStatusBadge`, `MoneyAmount`, avec tests
   - _→ T4_
-- [ ] T2.3.6 — Écrans `/finance/transactions` et `/finance/transactions/new`
+- [x] T2.3.6 — Écrans `/finance/transactions` et `/finance/transactions/new`
   - Actions Valider / Rejeter (SA, modale) ; toasts.
   - Entrée « Finance » dans la sidebar.
   - _→ R14.1, R14.2_
-- [ ] T2.3.7 — Écrans `/finance/invoices` et `/finance/invoices/[id]`
+- [x] T2.3.7 — Écrans `/finance/invoices` et `/finance/invoices/[id]`
   - Changement de statut limité aux transitions autorisées.
   - _→ R14.1_
-- [ ] T2.3.8 — Dashboard ACC
+- [x] T2.3.8 — Dashboard ACC
   - Transactions récentes, factures en attente, indicateurs du mois.
   - _→ R14.3_
-- [ ] T2.3.9 — `test/finance.int-spec.ts`
+- [x] T2.3.9 — `test/finance.int-spec.ts`
   - Matrice SA, ACC, DM, EMP.
   - Scope DM.
   - Validation réservée au SA, 409.
@@ -190,9 +190,9 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
   - Références concurrentes.
   - Audits.
   - _→ T2, R12, R13_
-- [ ] T2.3.10 — Critère de passage 2.3
-  - Tests automatisés : ACCOUNTANT plein accès ; DM lecture limitée à son département ; EMPLOYEE 403 et aucune entrée de menu Finance (test de `navItemsFor`).
-  - Validation manuelle utilisateur : ☐.
+- [x] T2.3.10 — Critère de passage 2.3
+  - Tests automatisés : ACCOUNTANT plein accès ; DM lecture limitée à son département ; EMPLOYEE 403 et aucune entrée de menu Finance (test de `navItemsFor`). Vérifié : `test/finance.int-spec.ts` (85 tests), `finance-controls.test.tsx`, et contrôle sur l'application compilée contre la base de dev (API et rendu serveur, 4 comptes).
+  - Validation manuelle utilisateur : ☑ (confirmée par l'utilisateur le 2026-11-06).
   - `PROGRESS.md`.
   - _→ R15_
 

@@ -1,7 +1,7 @@
 # PROGRESS — GFEP
 
 Suivi par étape de `06-Implementation-Plan.md` (§4). Statuts : **terminé** (critère de passage vérifié), **partiel** (implémenté, critère pas entièrement vérifié), **non commencé**.
-Décisions et écarts : `.kiro/specs/gfep-lot0-mvp1/DECISIONS.md` (Phase 0, MVP 1) et `.kiro/specs/gfep-mvp2/DECISIONS.md` (MVP 2). Dernière mise à jour : 2026-11-05.
+Décisions et écarts : `.kiro/specs/gfep-lot0-mvp1/DECISIONS.md` (Phase 0, MVP 1) et `.kiro/specs/gfep-mvp2/DECISIONS.md` (MVP 2). Dernière mise à jour : 2026-11-06.
 
 | Étape | Statut | Date | Critère de passage : comment il est vérifié | Écarts / reste à faire |
 | --- | --- | --- | --- | --- |
@@ -15,7 +15,7 @@ Décisions et écarts : `.kiro/specs/gfep-lot0-mvp1/DECISIONS.md` (Phase 0, MVP 
 | 1.5 Départements | terminé | 2026-11-05 | Automatisé : effectif = employés actifs en base (`modules.int-spec.ts`) ; rendu des 6 cartes vérifié (Chrome headless, SUPER_ADMIN) | Ressources documentaires : MVP 2 |
 | 2.1 Seed complet | terminé | 2026-11-05 | `npx prisma db seed` exécuté 2 fois sur `gfep_db` : exit 0, comptages SQL identiques (6 départements, 18 postes, 40 employés, 40 comptes LOCAL, 6 catégories, 50 documents + 50 fichiers, 30 factures, 100 transactions ; 3 rôles et 6 permissions selon M3), 0 doublon ; automatisé : `seed.int-spec.ts` (volumes, idempotence, fichiers, personas, mots de passe, refus en production) | Tests MVP 1 mis à jour pour les volumes (gfep-mvp2/DECISIONS.md M27) ; aucune migration ; rôles 8 et permissions 30 atteints en 2.4 et 2.7 ; suite backend plus lente (~110 s) |
 | 2.2 Documents | terminé | 2026-11-05 | Migration `document_validation_status` appliquée ; `test/documents.int-spec.ts` passe avec 2 comptes Employee de départements différents et vérifie exhaustivement leur visibilité ; `npm run lint`, `npm run build`, `npm test` passent (backend 118/118, frontend 116/116) ; validation manuelle utilisateur faite (`/documents`, `/documents/[id]`, `/documents/upload`, clair/sombre, responsive) | — |
-| 2.3 Finance | non commencé | — | — | — |
+| 2.3 Finance | terminé | 2026-11-06 | Migration `finance_department` appliquée (base de dev sans écart avec `schema.prisma`) ; seed : 4 rôles, 16 permissions, `ibrahima.sow` = ACCOUNTANT, factures et transactions rattachées à un département ; automatisé : `test/finance.int-spec.ts` (85 tests : matrice SA/ACC/DM/EMP sur les 6 routes finance, 401 sans session, scope DM, 7 transitions de facture autorisées et 18 interdites en 400, validation SA et 409, montants en chaîne, références concurrentes, dashboard ACC, audits) et `finance-controls.test.tsx` (aucune entrée Finance pour EMPLOYEE) ; contrôle sur l'application compilée contre la base de dev avec les 4 comptes (API et rendu serveur) ; `npm run lint`, `npm run build`, `npm test` passent (backend 235/235, frontend 146/146) ; validation manuelle utilisateur faite le 2026-11-06 (`/finance/transactions`, `/finance/transactions/new`, `/finance/invoices`, `/finance/invoices/[id]`, dashboard ACCOUNTANT, clair/sombre, responsive) | ACCOUNTANT ajouté dès 2.3 aux routes de lecture existantes (gfep-mvp2/DECISIONS.md M30). Export CSV reporté à 3.1 (M14) |
 | 2.4 RBAC complet | non commencé | — | — | Inclut T2.4.R1 (Suspendre) et T2.4.R2 (déverrouillage manuel) |
 | 2.5 Notifications | non commencé | — | — | — |
 | 2.6 Administration et audit | non commencé | — | — | — |

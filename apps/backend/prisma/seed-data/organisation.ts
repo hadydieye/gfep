@@ -117,10 +117,29 @@ const DOCUMENT_PERMISSION_KEYS = DOCUMENT_PERMISSION_SEEDS.map(
   ({ resource, action }) => `${resource}:${action}`,
 );
 
-// Rôles à l'étape 2.1 : seuls les 3 rôles MVP 1 (M3) ; m.keita SA, f.camara DM, les autres EMP
+// Étape 2.3 : permissions finance (M24) et rôle ACCOUNTANT (M6)
+const FINANCE_PERMISSION_SEEDS = [
+  { resource: 'transactions', action: 'read', description: 'Consulter les transactions' },
+  { resource: 'transactions', action: 'write', description: 'Créer des transactions' },
+  { resource: 'transactions', action: 'validate', description: 'Valider ou rejeter des transactions' },
+  { resource: 'invoices', action: 'read', description: 'Consulter les factures' },
+  { resource: 'invoices', action: 'status', description: 'Changer le statut des factures' },
+] as const;
+
+const FINANCE_PERMISSION_KEYS = FINANCE_PERMISSION_SEEDS.map(
+  ({ resource, action }) => `${resource}:${action}`,
+);
+
+const ACCOUNTANT_ROLE = {
+  name: 'ACCOUNTANT',
+  description: 'Comptable — gestion des transactions et des factures',
+} as const;
+
+// Rôles à l'étape 2.3 (M3, M5, M6) : m.keita SA, f.camara DM, ibrahima.sow ACC, les autres EMP
 const ROLE_BY_USERNAME: Record<string, string> = {
   'm.keita': 'SUPER_ADMIN',
   'f.camara': 'DEPARTMENT_MANAGER',
+  'ibrahima.sow': 'ACCOUNTANT',
 };
 
 // Identifiant = partie locale de l'e-mail professionnel (`initiale.nom`, ou `prenom.nom` en cas
@@ -132,11 +151,27 @@ export const USERS: UserSeed[] = EMPLOYEES.map((e) => {
 
 export const ORGANISATION: OrganisationDataset = {
   ...MVP1_DATA,
-  permissions: [...MVP1_DATA.permissions, ...DOCUMENT_PERMISSION_SEEDS],
+  roles: [...MVP1_DATA.roles, ACCOUNTANT_ROLE],
+  permissions: [...MVP1_DATA.permissions, ...DOCUMENT_PERMISSION_SEEDS, ...FINANCE_PERMISSION_SEEDS],
   rolePermissions: {
     ...MVP1_DATA.rolePermissions,
-    SUPER_ADMIN: [...MVP1_DATA.rolePermissions.SUPER_ADMIN, ...DOCUMENT_PERMISSION_KEYS],
-    DEPARTMENT_MANAGER: [...MVP1_DATA.rolePermissions.DEPARTMENT_MANAGER, ...DOCUMENT_PERMISSION_KEYS],
+    SUPER_ADMIN: [
+      ...MVP1_DATA.rolePermissions.SUPER_ADMIN,
+      ...DOCUMENT_PERMISSION_KEYS,
+      ...FINANCE_PERMISSION_KEYS,
+    ],
+    DEPARTMENT_MANAGER: [
+      ...MVP1_DATA.rolePermissions.DEPARTMENT_MANAGER,
+      ...DOCUMENT_PERMISSION_KEYS,
+      'transactions:read',
+      'invoices:read',
+    ],
+    // Matrice finale (design §2) : lecture employés et départements, documents, finance sans validation
+    ACCOUNTANT: [
+      ...MVP1_DATA.rolePermissions.EMPLOYEE,
+      ...DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate'),
+      ...FINANCE_PERMISSION_KEYS.filter((key) => key !== 'transactions:validate'),
+    ],
     EMPLOYEE: [
       ...MVP1_DATA.rolePermissions.EMPLOYEE,
       ...DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate'),

@@ -1,16 +1,22 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   Building2,
   FileClock,
   FileText,
   IdCard,
   LineChart,
+  Receipt,
+  ReceiptText,
   Users,
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { DashboardCard } from '@/components/dashboard/dashboard-card';
+import { InvoiceStatusBadge, TRANSACTION_TYPE_LABEL, TransactionStatusBadge } from '@/components/finance/finance-badges';
+import { MoneyAmount } from '@/components/finance/money-amount';
 import { ErrorState } from '@/components/states/states';
 import { apiGet } from '@/lib/api/server';
 import type { AuthUser, DashboardData } from '@/lib/api/types';
@@ -33,6 +39,7 @@ export default async function DashboardPage() {
       <h1 className="mb-6 text-2xl font-semibold text-foreground-primary">Bonjour, {firstName}</h1>
       <div className={GRID}>
         {result.data.role === 'SUPER_ADMIN' && <AdminCards data={result.data} />}
+        {result.data.role === 'ACCOUNTANT' && <AccountantCards data={result.data} />}
         {result.data.role === 'DEPARTMENT_MANAGER' && <ManagerCards data={result.data} />}
         {result.data.role === 'EMPLOYEE' && <EmployeeCards user={user} data={result.data} />}
       </div>
@@ -88,6 +95,77 @@ function ManagerCards({ data }: { data: DashboardData }) {
         documents={data.pendingDocuments ?? []}
         emptyMessage="Aucun document en attente de validation."
       />
+    </>
+  );
+}
+
+// Mois des indicateurs (AAAA-MM, UTC) en toutes lettres : « novembre 2026 »
+function monthLabel(month: string | undefined): string {
+  if (!month) return 'Mois en cours';
+  return new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(
+    new Date(`${month}-01T00:00:00.000Z`),
+  );
+}
+
+function AccountantCards({ data }: { data: DashboardData }) {
+  const month = monthLabel(data.indicators.month);
+  const transactions = data.recentTransactions ?? [];
+  const invoices = data.pendingInvoices ?? [];
+  const pendingTotal = data.indicators.pendingInvoicesTotal ?? invoices.length;
+  return (
+    <>
+      <DashboardCard
+        label="Recettes validées"
+        icon={ArrowUpRight}
+        value={<MoneyAmount amount={data.indicators.monthIncome ?? '0.00'} className="text-2xl" />}
+        subtitle={month}
+      />
+      <DashboardCard
+        label="Dépenses validées"
+        icon={ArrowDownRight}
+        value={<MoneyAmount amount={data.indicators.monthExpense ?? '0.00'} className="text-2xl" />}
+        subtitle={month}
+      />
+      <DashboardCard label="Transactions récentes" icon={Receipt}>
+        {transactions.length === 0 ? (
+          <p className="text-sm text-foreground-secondary">Aucune transaction enregistrée.</p>
+        ) : (
+          <ul className="flex flex-col gap-2 text-sm">
+            {transactions.map((transaction) => (
+              <li key={transaction.id} className="flex items-center justify-between gap-3">
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate font-medium tabular-nums text-foreground-primary">{transaction.reference}</span>
+                  <span className="text-xs text-foreground-secondary">{TRANSACTION_TYPE_LABEL[transaction.transactionType]}</span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-1">
+                  <MoneyAmount amount={transaction.amount} currency={transaction.currency} className="text-foreground-primary" />
+                  <TransactionStatusBadge status={transaction.status} />
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href="/finance/transactions" className="mt-1 text-sm font-medium text-link hover:underline">
+          Voir les transactions
+        </Link>
+      </DashboardCard>
+      <DashboardCard label="Factures en attente" icon={ReceiptText} value={pendingTotal} subtitle="Envoyées ou en retard">
+        {invoices.length > 0 && (
+          <ul className="flex flex-col gap-2 text-sm">
+            {invoices.map((invoice) => (
+              <li key={invoice.id} className="flex items-center justify-between gap-3">
+                <Link href={`/finance/invoices/${invoice.id}`} className="min-w-0 truncate font-medium text-link hover:underline">
+                  {invoice.invoiceNumber} · {invoice.clientName}
+                </Link>
+                <InvoiceStatusBadge status={invoice.status} />
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link href="/finance/invoices" className="mt-1 text-sm font-medium text-link hover:underline">
+          Voir les factures
+        </Link>
+      </DashboardCard>
     </>
   );
 }

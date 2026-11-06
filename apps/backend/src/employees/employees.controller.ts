@@ -13,6 +13,7 @@ import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Permission } from '../rbac/decorators/permission.decorator.js';
 import { Roles } from '../rbac/decorators/roles.decorator.js';
+import { READ_ROLES } from '../rbac/roles.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { EmployeeResponseDto, PaginatedEmployeesDto } from './dto/employee-response.dto.js';
 import { PaginationQueryDto } from './dto/pagination-query.dto.js';
@@ -24,14 +25,14 @@ export class EmployeesController {
   constructor(private readonly employeesService: EmployeesService) {}
 
   @Get()
-  @Roles('SUPER_ADMIN', 'DEPARTMENT_MANAGER', 'EMPLOYEE')
+  @Roles(...READ_ROLES)
   @Permission('employees', 'read')
   findAll(@Query() query: PaginationQueryDto): Promise<PaginatedEmployeesDto> {
     return this.employeesService.findAll(query);
   }
 
   @Get(':id')
-  @Roles('SUPER_ADMIN', 'DEPARTMENT_MANAGER', 'EMPLOYEE')
+  @Roles(...READ_ROLES)
   @Permission('employees', 'read')
   findOne(@Param('id', ParseUUIDPipe) id: string): Promise<EmployeeResponseDto> {
     return this.employeesService.findOne(id);

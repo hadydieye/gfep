@@ -76,6 +76,25 @@ describe('Prisma schema verification', () => {
     expect(enumMatches?.length).toBe(12);
   });
 
+  // Migration finance_department (gfep-mvp2/DECISIONS.md M13)
+  it.each(['Transaction', 'Invoice'])(
+    'model %s has a nullable, indexed departmentId related to Department',
+    (modelName) => {
+      const body = schemaContent.match(new RegExp(`^model ${modelName}\\s*\\{([\\s\\S]*?)^\\}`, 'm'))?.[1] ?? '';
+      expect(body).toMatch(/^\s*departmentId\s+String\?\s*$/m);
+      expect(body).toMatch(
+        /^\s*department\s+Department\?\s+@relation\(fields: \[departmentId\], references: \[id\]\)/m,
+      );
+      expect(body).toMatch(/@@index\(\[departmentId\]\)/);
+    },
+  );
+
+  it('model Department exposes its transactions and invoices', () => {
+    const body = schemaContent.match(/^model Department\s*\{([\s\S]*?)^\}/m)?.[1] ?? '';
+    expect(body).toMatch(/^\s*transactions\s+Transaction\[\]/m);
+    expect(body).toMatch(/^\s*invoices\s+Invoice\[\]/m);
+  });
+
   it('should not contain a hardcoded postgresql:// connection string', () => {
     expect(schemaContent).not.toMatch(/postgresql:\/\//);
   });

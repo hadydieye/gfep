@@ -4,7 +4,11 @@ export type EmploymentStatus = 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
 export type ConfidentialityLevel = 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL' | 'RESTRICTED';
 export type DocumentValidationStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
 
-export type RoleName = 'SUPER_ADMIN' | 'DEPARTMENT_MANAGER' | 'EMPLOYEE';
+export type TransactionType = 'INCOME' | 'EXPENSE';
+export type TransactionStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
+export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+
+export type RoleName = 'SUPER_ADMIN' | 'DEPARTMENT_MANAGER' | 'ACCOUNTANT' | 'EMPLOYEE';
 
 export interface AuthUser {
   id: string;
@@ -27,10 +31,33 @@ export interface DashboardData {
     totalEmployees?: number;
     departmentEmployees?: number;
     departmentName?: string;
+    /** Montants décimaux en chaîne (jamais en nombre) */
+    monthIncome?: string;
+    monthExpense?: string;
+    month?: string;
+    pendingInvoicesTotal?: number;
   };
   recentActivity: [];
   recentDocuments?: Array<{ id: string; title: string; createdAt: string }>;
   pendingDocuments?: Array<{ id: string; title: string; createdAt: string }>;
+  recentTransactions?: Array<{
+    id: string;
+    reference: string;
+    transactionType: TransactionType;
+    amount: string;
+    currency: string;
+    status: TransactionStatus;
+    createdAt: string;
+  }>;
+  pendingInvoices?: Array<{
+    id: string;
+    invoiceNumber: string;
+    clientName: string;
+    amount: string;
+    currency: string;
+    dueDate: string;
+    status: InvoiceStatus;
+  }>;
 }
 
 export interface Employee {
@@ -129,6 +156,55 @@ export interface DocumentShareRecipient {
   id: string;
   username: string;
   displayName: string;
+}
+
+export interface FinanceDepartment {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export interface Transaction {
+  id: string;
+  reference: string;
+  transactionType: TransactionType;
+  /** Montant décimal en chaîne, jamais en nombre */
+  amount: string;
+  currency: string;
+  description: string | null;
+  status: TransactionStatus;
+  createdAt: string;
+  department: FinanceDepartment | null;
+  createdBy: { id: string; username: string } | null;
+}
+
+export interface PaginatedTransactions {
+  data: Transaction[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  clientName: string;
+  /** Montant décimal en chaîne, jamais en nombre */
+  amount: string;
+  currency: string;
+  dueDate: string;
+  status: InvoiceStatus;
+  createdAt: string;
+  department: FinanceDepartment | null;
+  createdBy: { id: string; username: string } | null;
+  allowedTransitions: InvoiceStatus[];
+}
+
+export interface PaginatedInvoices {
+  data: Invoice[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export type ApiResult<T> =

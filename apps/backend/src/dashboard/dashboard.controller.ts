@@ -3,6 +3,7 @@ import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Permission } from '../rbac/decorators/permission.decorator.js';
 import { Roles } from '../rbac/decorators/roles.decorator.js';
+import { READ_ROLES } from '../rbac/roles.js';
 import { DashboardService } from './dashboard.service.js';
 import { DashboardResponseDto } from './dto/dashboard-response.dto.js';
 
@@ -11,7 +12,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get()
-  @Roles('SUPER_ADMIN', 'DEPARTMENT_MANAGER', 'EMPLOYEE')
+  @Roles(...READ_ROLES)
   @Permission('dashboard', 'read')
   getDashboard(@CurrentUser() user: AuthenticatedUser): Promise<DashboardResponseDto> {
     return this.dashboardService.getIndicators(user);

@@ -126,6 +126,8 @@ model Department {
   employees Employee[] @relation("DepartmentEmployees")
   positions Position[]
   documentCategories DocumentCategory[]
+  transactions       Transaction[]
+  invoices           Invoice[]
 
   @@map("departments")
 }
@@ -328,8 +330,12 @@ model Transaction {
   createdBy       String
   status          TransactionStatus  @default(PENDING)
   createdAt       DateTime           @default(now())
+  departmentId    String?
+
+  department Department? @relation(fields: [departmentId], references: [id])
 
   @@index([createdBy])
+  @@index([departmentId])
   @@map("transactions")
 }
 
@@ -343,8 +349,12 @@ model Invoice {
   status        InvoiceStatus @default(DRAFT)
   createdBy     String
   createdAt     DateTime      @default(now())
+  departmentId  String?
+
+  department Department? @relation(fields: [departmentId], references: [id])
 
   @@index([createdBy])
+  @@index([departmentId])
   @@map("invoices")
 }
 
