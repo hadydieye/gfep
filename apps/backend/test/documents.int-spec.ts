@@ -189,7 +189,7 @@ describe('Documents (intégration)', () => {
       });
 
       const cfList = await get('/documents?limit=100', sessions.employeeCf);
-      const cfIds = new Set(cfList.body.data.map((item: { id: string }) => item.id));
+      const cfIds = new Set<string>(cfList.body.data.map((item: { id: string }) => item.id));
       expect(cfIds).toContain(ownInternal.id);
       expect(cfIds).toContain(publicOther.id);
       expect(cfIds).toContain(sharedOther.id);
@@ -198,7 +198,7 @@ describe('Documents (intégration)', () => {
       expect(cfIds).not.toContain(privateOther.id);
 
       const dgList = await get('/documents?limit=100', sessions.employeeDg);
-      const dgIds = new Set(dgList.body.data.map((item: { id: string }) => item.id));
+      const dgIds = new Set<string>(dgList.body.data.map((item: { id: string }) => item.id));
       expect(dgIds).toContain(otherInternal.id);
       expect(dgIds).not.toContain(ownInternal.id);
       expect(dgIds).not.toContain(sharedOther.id);

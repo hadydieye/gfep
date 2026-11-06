@@ -93,22 +93,39 @@ export class DashboardService {
         : Promise.resolve(undefined),
     ]);
 
-    const finance = role === ACCOUNTANT ? await this.accountantCards() : undefined;
+    // SUPER_ADMIN : vue consolidée (AppFlow §5, N10) — documents en attente de tous les départements
+    const adminPending =
+      role === SUPER_ADMIN
+        ? await Promise.all([
+            this.prisma.document.findMany({
+              where: { validationStatus: DocumentValidationStatus.PENDING },
+              select: { id: true, title: true, createdAt: true },
+              orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+              take: 5,
+            }),
+            this.prisma.document.count({ where: { validationStatus: DocumentValidationStatus.PENDING } }),
+          ])
+        : undefined;
+
+    const finance = role === ACCOUNTANT || role === SUPER_ADMIN ? await this.accountantCards() : undefined;
     if (finance) Object.assign(indicators, finance.indicators);
     // État des services (M20) : SA, ITA, ITT ; comptes récents : SA, ITA ; effectifs : HR
     const services = [SUPER_ADMIN, IT_ADMINISTRATOR, IT_TECHNICIAN].includes(role)
       ? await this.serviceStatus()
       : undefined;
     const recentAccounts = [SUPER_ADMIN, IT_ADMINISTRATOR].includes(role) ? await this.recentAccounts() : undefined;
-    const hr = role === HR_MANAGER ? await this.hrCards() : undefined;
+    const hr = role === HR_MANAGER || role === SUPER_ADMIN ? await this.hrCards() : undefined;
     // EMPLOYEE : « Mes notifications » (AppFlow §5, design §7.3), 5 dernières
     const recentNotifications = role === EMPLOYEE ? await this.notifications.latest(user.id) : undefined;
     // Étape 2.6 (design §8.4) : SA « Activité récente » ; AUD derniers audits et alertes HIGH/CRITICAL ;
     // ITA événements de sécurité récents (M21 : sur le dashboard uniquement)
     const recentActivity = role === SUPER_ADMIN || role === AUDITOR ? await this.auditRead.latestLogs() : [];
     const securityAlerts =
-      role === AUDITOR ? await this.auditRead.latestSecurityEvents(5, [SecuritySeverity.HIGH, SecuritySeverity.CRITICAL]) : undefined;
-    const recentSecurityEvents = role === IT_ADMINISTRATOR ? await this.auditRead.latestSecurityEvents() : undefined;
+      role === AUDITOR || role === SUPER_ADMIN
+        ? await this.auditRead.latestSecurityEvents(5, [SecuritySeverity.HIGH, SecuritySeverity.CRITICAL])
+        : undefined;
+    const recentSecurityEvents =
+      role === IT_ADMINISTRATOR || role === SUPER_ADMIN ? await this.auditRead.latestSecurityEvents() : undefined;
 
     return {
       role,
@@ -125,6 +142,9 @@ export class DashboardService {
       ...(recentNotifications ? { recentNotifications } : {}),
       ...(recentDocuments ? { recentDocuments: recentDocuments.map(withIsoDate) } : {}),
       ...(pendingDocuments ? { pendingDocuments: pendingDocuments.map(withIsoDate) } : {}),
+      ...(adminPending
+        ? { pendingDocuments: adminPending[0].map(withIsoDate), pendingDocumentsTotal: adminPending[1] }
+        : {}),
     };
   }
 

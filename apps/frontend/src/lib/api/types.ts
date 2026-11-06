@@ -71,6 +71,8 @@ export interface DashboardData {
   recentSecurityEvents?: SecurityEventItem[];
   recentDocuments?: Array<{ id: string; title: string; createdAt: string }>;
   pendingDocuments?: Array<{ id: string; title: string; createdAt: string }>;
+  /** SA : nombre total de documents en attente de validation (N10) */
+  pendingDocumentsTotal?: number;
   recentTransactions?: Array<{
     id: string;
     reference: string;

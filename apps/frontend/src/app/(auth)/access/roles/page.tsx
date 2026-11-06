@@ -19,7 +19,7 @@ export default async function AccessRolesPage() {
           <Link
             key={role.id}
             href={`/access/roles/${role.id}`}
-            className="flex flex-col gap-2 rounded-[8px] border border-border bg-background-surface p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:border-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link"
+            className="flex flex-col gap-2 rounded-[8px] border border-border bg-background-surface p-5 shadow-card transition-colors hover:border-link focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link"
           >
             <span className="flex items-center justify-between gap-2">
               <span className="flex items-center gap-2 font-semibold text-foreground-primary">

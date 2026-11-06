@@ -15,6 +15,8 @@ import { AuditService } from '../audit/audit.service.js';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { buildOrderBy } from '../common/sorting.js';
+import { DOCUMENT_DEFAULT_ORDER, DOCUMENT_SORTS, DOCUMENT_SORT_TIEBREAKER } from './document-sorting.js';
 import type { CreateDocumentDto } from './dto/create-document.dto.js';
 import type {
   DocumentCategoryDto,
@@ -77,14 +79,24 @@ export class DocumentsService {
           confidentialityLevel: query.confidentialityLevel,
           validationStatus: query.validationStatus,
           title: query.search ? { contains: query.search, mode: 'insensitive' } : undefined,
+          ownerId: query.ownerId,
         },
+        // Département au sens de M8 : celui de la catégorie, à défaut celui du propriétaire
+        query.departmentId
+          ? {
+              OR: [
+                { category: { departmentId: query.departmentId } },
+                { category: { departmentId: null }, owner: { departmentId: query.departmentId } },
+              ],
+            }
+          : {},
       ],
     };
     const [documents, total] = await this.prisma.$transaction([
       this.prisma.document.findMany({
         where,
         include: DOCUMENT_INCLUDE,
-        orderBy: { createdAt: 'desc' },
+        orderBy: buildOrderBy(query, DOCUMENT_SORTS, DOCUMENT_SORT_TIEBREAKER, DOCUMENT_DEFAULT_ORDER),
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),

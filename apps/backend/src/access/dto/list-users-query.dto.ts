@@ -1,6 +1,8 @@
 import { AuthProvider, UserStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { IsSortKey, IsSortOrder, type SortOrder } from '../../common/sorting.js';
+import { ACCOUNT_SORTS } from '../account-sorting.js';
 
 export class ListUsersQueryDto {
   @IsOptional()
@@ -33,4 +35,10 @@ export class ListUsersQueryDto {
   @IsString()
   @MaxLength(100)
   search?: string;
+
+  @IsSortKey(ACCOUNT_SORTS)
+  sort?: string;
+
+  @IsSortOrder()
+  order?: SortOrder;
 }

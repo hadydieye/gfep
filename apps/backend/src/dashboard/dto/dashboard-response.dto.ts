@@ -30,18 +30,21 @@ export class DashboardResponseDto {
     created: DashboardAccountDto[];
     suspended: DashboardAccountDto[];
   };
-  /** HR : répartition des employés actifs par département et dernières embauches */
+  /** HR et SA : répartition des employés actifs par département et dernières embauches (N10) */
   headcountByDepartment?: Array<{ code: string; name: string; count: number }>;
   /** EMPLOYEE : 5 dernières notifications de l'utilisateur */
   recentNotifications?: Array<{ id: string; type: string; title: string; message: string; readAt: string | null; createdAt: string }>;
   recentHires?: Array<{ id: string; firstName: string; lastName: string; department: string; hireDate: string }>;
   /** SA et AUD : 5 derniers audits (étape 2.6) ; vide pour les autres rôles */
   recentActivity: AuditLogDto[];
-  /** AUD : alertes de sécurité HIGH et CRITICAL ; ITA : événements de sécurité récents */
+  /** AUD et SA : alertes de sécurité HIGH et CRITICAL ; ITA et SA : événements de sécurité récents (N10) */
   securityAlerts?: SecurityEventDto[];
   recentSecurityEvents?: SecurityEventDto[];
   recentDocuments?: Array<{ id: string; title: string; createdAt: string }>;
+  /** DM : documents en attente de son département ; SA : 5 plus récents de tous les départements (N10) */
   pendingDocuments?: Array<{ id: string; title: string; createdAt: string }>;
+  /** SA : nombre total de documents en attente de validation (N10) */
+  pendingDocumentsTotal?: number;
   recentTransactions?: Array<{
     id: string;
     reference: string;

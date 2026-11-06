@@ -9,6 +9,7 @@ import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { toast } from '@/components/ui/sonner';
 import { apiFetch } from '@/lib/api/client';
 import type { Department, Employee, PaginatedEmployees } from '@/lib/api/types';
 
@@ -103,6 +104,9 @@ export function EmployeeForm({ employee, scopeDepartmentId }: EmployeeFormProps)
     });
 
     if (result.ok) {
+      const name = `${result.data.firstName} ${result.data.lastName}`;
+      // Le Toaster du layout racine survit à la navigation : le toast s'affiche sur la fiche
+      toast.success(isEdit ? `La fiche de ${name} a été mise à jour.` : `L’employé ${name} a été créé.`);
       router.push(`/employees/${result.data.id}`);
       router.refresh();
       return;
@@ -120,7 +124,7 @@ export function EmployeeForm({ employee, scopeDepartmentId }: EmployeeFormProps)
     <form
       onSubmit={handleSubmit(onSubmit)}
       noValidate
-      className="flex flex-col gap-6 rounded-[8px] border border-border bg-background-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]"
+      className="flex flex-col gap-6 rounded-[8px] border border-border bg-background-surface p-6 shadow-card"
     >
       <fieldset className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <legend className="mb-2 text-sm font-semibold text-foreground-primary">

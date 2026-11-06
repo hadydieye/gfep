@@ -4,8 +4,9 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Download, Share2, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { Download, Share2, Trash2 } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { toast } from '@/components/ui/sonner';
 import { ApiErrorState } from '@/components/states/states';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
@@ -121,10 +122,7 @@ export function DocumentDetail({ initialDocument }: { initialDocument: DocumentI
   const previewUrl = `/api/v1/documents/${document.id}/preview`;
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-5">
-      <div className="flex items-center gap-3">
-        <Button asChild variant="secondary" size="icon" aria-label="Retour aux documents"><Link href="/documents"><ArrowLeft className="h-4 w-4" aria-hidden /></Link></Button>
-        <nav aria-label="Fil d’Ariane" className="text-sm text-foreground-secondary"><Link href="/documents" className="hover:underline">Documents</Link><span aria-hidden> / </span><span className="text-foreground-primary">{document.title}</span></nav>
-      </div>
+      <Breadcrumb items={[{ label: 'Documents', href: '/documents' }, { label: document.title }]} />
 
       <header className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
         <div className="flex flex-col gap-3">

@@ -3,14 +3,23 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, Loader2, LogOut } from 'lucide-react';
+import { Bell, Loader2, LogOut, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/client';
 import type { AuthUser } from '@/lib/api/types';
 import { NOTIFICATIONS_CHANGED_EVENT } from '@/components/notifications/notification-meta';
-import { navItemsFor } from './nav-items';
+import { ThemeToggle } from './theme-toggle';
 
-export function Topbar({ user, initialUnreadCount = 0 }: { user: AuthUser; initialUnreadCount?: number }) {
+export function Topbar({
+  user,
+  initialUnreadCount = 0,
+  onOpenMenu,
+}: {
+  user: AuthUser;
+  initialUnreadCount?: number;
+  /** Ouvre le tiroir de navigation (mobile, N7) */
+  onOpenMenu?: () => void;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -43,19 +52,11 @@ export function Topbar({ user, initialUnreadCount = 0 }: { user: AuthUser; initi
 
   return (
     <header className="sticky top-0 z-20 flex h-14 items-center gap-2 border-b border-border bg-background-surface px-4 md:px-6">
-      {/* Navigation compacte sur mobile (la sidebar est masquée) */}
-      <nav aria-label="Navigation mobile" className="flex gap-1 md:hidden">
-        {navItemsFor(user.permissions).map(({ href, label, icon: Icon }) => (
-          <Link
-            key={href}
-            href={href}
-            aria-label={label}
-            className="rounded-md p-2 text-foreground-secondary hover:bg-background-main"
-          >
-            <Icon className="h-4 w-4" aria-hidden />
-          </Link>
-        ))}
-      </nav>
+      {onOpenMenu && (
+        <Button variant="secondary" size="icon" className="md:hidden" aria-label="Ouvrir le menu" onClick={onOpenMenu}>
+          <Menu className="h-4 w-4" aria-hidden />
+        </Button>
+      )}
       <div className="ml-auto flex items-center gap-3">
         <Link
           href="/notifications"
@@ -73,6 +74,7 @@ export function Topbar({ user, initialUnreadCount = 0 }: { user: AuthUser; initi
             </span>
           )}
         </Link>
+        <ThemeToggle />
         <span className="hidden text-sm font-medium text-foreground-primary sm:inline">
           {displayName}
         </span>

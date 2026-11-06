@@ -15,7 +15,7 @@ const UNKNOWN_ID = '00000000-0000-4000-8000-000000000000';
 describe('Dashboard, Employés, Départements (intégration)', () => {
   let app: NestExpressApplication;
   let prisma: PrismaClient;
-  let cookies: { admin: string; manager: string; employee: string };
+  let cookies: { admin: string; manager: string; employee: string; accountant: string; hr: string };
 
   beforeAll(async () => {
     prisma = testPrisma();
@@ -26,6 +26,8 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
       admin: await sessionCookie(app, CREDENTIALS.admin),
       manager: await sessionCookie(app, CREDENTIALS.manager),
       employee: await sessionCookie(app, CREDENTIALS.employee),
+      accountant: await sessionCookie(app, CREDENTIALS.accountant),
+      hr: await sessionCookie(app, CREDENTIALS.hr),
     };
   });
 
@@ -53,6 +55,36 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
         services: { database: 'UP', ldap: 'NOT_CONFIGURED' },
       });
       expect(response.body.recentAccounts.created).toHaveLength(5);
+    });
+
+    it('SUPER_ADMIN : vue consolidée (N10) — finance, documents en attente, effectifs, sécurité', async () => {
+      const response = await get('/dashboard', cookies.admin);
+      const accountant = await get('/dashboard', cookies.accountant);
+      const hr = await get('/dashboard', cookies.hr);
+      expect(response.status).toBe(200);
+      // Mêmes calculs que les dashboards ACCOUNTANT et HR_MANAGER
+      expect(response.body.indicators).toMatchObject({
+        month: accountant.body.indicators.month,
+        monthIncome: accountant.body.indicators.monthIncome,
+        monthExpense: accountant.body.indicators.monthExpense,
+        pendingInvoicesTotal: accountant.body.indicators.pendingInvoicesTotal,
+      });
+      expect(response.body.pendingInvoices).toEqual(accountant.body.pendingInvoices);
+      expect(response.body.recentTransactions).toEqual(accountant.body.recentTransactions);
+      expect(response.body.headcountByDepartment).toEqual(hr.body.headcountByDepartment);
+      expect(response.body.recentHires).toEqual(hr.body.recentHires);
+      // Documents en attente de tous les départements : 5 plus récents et total
+      const pendingTotal = await prisma.document.count({ where: { validationStatus: 'PENDING' } });
+      expect(pendingTotal).toBeGreaterThan(5);
+      expect(response.body.pendingDocumentsTotal).toBe(pendingTotal);
+      const expected = await prisma.document.findMany({
+        where: { validationStatus: 'PENDING' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        take: 5,
+      });
+      expect(response.body.pendingDocuments.map((d: { id: string }) => d.id)).toEqual(expected.map((d) => d.id));
+      expect(Array.isArray(response.body.securityAlerts)).toBe(true);
+      expect(Array.isArray(response.body.recentSecurityEvents)).toBe(true);
     });
 
     it('DEPARTMENT_MANAGER : effectif et nom de son département uniquement', async () => {

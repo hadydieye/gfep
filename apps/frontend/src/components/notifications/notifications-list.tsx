@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { Check, CheckCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ApiErrorState, EmptyState } from '@/components/states/states';
 import { Button } from '@/components/ui/button';

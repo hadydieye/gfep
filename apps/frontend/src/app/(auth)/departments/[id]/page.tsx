@@ -2,19 +2,20 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { UserRound } from 'lucide-react';
 import { DepartmentIcon } from '@/components/departments/department-icon';
-import { StatusBadge } from '@/components/employees/status-badge';
+import { TeamTable } from '@/components/departments/team-table';
+import { RelatedDocuments } from '@/components/documents/related-documents';
 import { ApiErrorState, EmptyState } from '@/components/states/states';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiGet } from '@/lib/api/server';
-import type { DepartmentDetail } from '@/lib/api/types';
+import type { DepartmentDetail, PaginatedDocuments } from '@/lib/api/types';
+import { getSession, hasPermission } from '@/lib/auth/session';
 
-const CARD = 'rounded-[8px] border border-border bg-background-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]';
+const CARD = 'rounded-[8px] border border-border bg-background-surface p-6 shadow-card';
 
 export default async function DepartmentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const result = await apiGet<DepartmentDetail>(`/departments/${id}`);
-  if (!result.ok && result.status === 401) {
+  const [user, result] = await Promise.all([getSession(), apiGet<DepartmentDetail>(`/departments/${id}`)]);
+  if (!user || (!result.ok && result.status === 401)) {
     redirect('/login');
   }
   if (!result.ok) {
@@ -27,6 +28,10 @@ export default async function DepartmentDetailPage({ params }: { params: Promise
   }
 
   const department = result.data;
+  // « Ressources documentaires » (AppFlow §3.5, N11) : département au sens de M8, visibilité M9
+  const documents = hasPermission(user, 'documents', 'read')
+    ? await apiGet<PaginatedDocuments>(`/documents?departmentId=${department.id}&limit=10`)
+    : null;
   return (
     <div>
       <Breadcrumb items={[{ label: 'Départements', href: '/departments' }, { label: department.name }]} />
@@ -69,32 +74,19 @@ export default async function DepartmentDetailPage({ params }: { params: Promise
           {department.employees.length === 0 ? (
             <EmptyState message="Aucun employé actif dans ce département." />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nom</TableHead>
-                  <TableHead>Poste</TableHead>
-                  <TableHead>Statut</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {department.employees.map((employee) => (
-                  <TableRow key={employee.id}>
-                    <TableCell>
-                      <Link href={`/employees/${employee.id}`} className="font-medium hover:text-link hover:underline">
-                        {employee.firstName} {employee.lastName}
-                      </Link>
-                    </TableCell>
-                    <TableCell>{employee.position}</TableCell>
-                    <TableCell>
-                      <StatusBadge status={employee.employmentStatus} />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <TeamTable employees={department.employees} />
           )}
         </section>
+        {documents && (
+          <div className="lg:col-span-2">
+            <RelatedDocuments
+              title="Ressources documentaires"
+              result={documents}
+              moreHref={`/documents?departmentId=${department.id}`}
+              emptyMessage="Aucun document visible pour ce département."
+            />
+          </div>
+        )}
       </div>
     </div>
   );

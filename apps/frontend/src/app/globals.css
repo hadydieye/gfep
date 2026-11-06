@@ -72,6 +72,14 @@
   --radius-card: 8px;
 }
 
+/* ─── Ombre de carte (04 §4.3 : très subtile ; N9) ─────────────────────────
+   Hors de @theme : Tailwind v4 recopie la valeur d'un token --shadow-* dans
+   l'utilitaire généré, ce qui ignorerait la valeur sombre. La variable est
+   définie sur :root et .dark (plus bas), l'utilitaire la lit à l'exécution. */
+@utility shadow-card {
+  box-shadow: var(--shadow-card);
+}
+
 /* ─── CSS custom properties for direct access outside Tailwind ───────────────
    (scripts, PDF rendering, future Storybook, etc.)
    ──────────────────────────────────────────────────────────────────────────── */
@@ -114,6 +122,9 @@
     --color-warning-dark: #D4A017;
     --color-error: #C0392B;
     --color-error-dark: #E05A4A;
+
+    /* Ombre de carte (N9) */
+    --shadow-card: 0 1px 3px rgb(0 0 0 / 0.06);
   }
 
   /* Dark mode — override the semantic roles used by components.
@@ -131,6 +142,8 @@
     --color-success: #2FA873;
     --color-warning: #D4A017;
     --color-error: #E05A4A;
+    /* Sur fond sombre, une ombre à 6 % est invisible : opacité relevée */
+    --shadow-card: 0 1px 3px rgb(0 0 0 / 0.4);
   }
 
   html {

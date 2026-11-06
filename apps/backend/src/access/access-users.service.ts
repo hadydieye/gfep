@@ -5,6 +5,8 @@ import { AuditService } from '../audit/audit.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { buildOrderBy } from '../common/sorting.js';
+import { ACCOUNT_DEFAULT_ORDER, ACCOUNT_SORTS, ACCOUNT_SORT_TIEBREAKER } from './account-sorting.js';
 import { SUPER_ADMIN, roleLabel } from '../rbac/roles.js';
 import {
   STATE_CONFLICT_MESSAGE,
@@ -65,7 +67,7 @@ export class AccessUsersService {
       this.prisma.user.findMany({
         where,
         include: ACCOUNT_INCLUDE,
-        orderBy: { username: 'asc' },
+        orderBy: buildOrderBy(query, ACCOUNT_SORTS, ACCOUNT_SORT_TIEBREAKER, ACCOUNT_DEFAULT_ORDER),
         skip: (page - 1) * limit,
         take: limit,
       }),

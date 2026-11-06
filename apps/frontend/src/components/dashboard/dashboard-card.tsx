@@ -14,7 +14,7 @@ export function DashboardCard({ label, value, subtitle, icon: Icon, children, cl
   return (
     <section
       className={cn(
-        'flex flex-col gap-2 rounded-[8px] border border-border bg-background-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]',
+        'flex flex-col gap-2 rounded-[8px] border border-border bg-background-surface p-6 shadow-card',
         className,
       )}
     >

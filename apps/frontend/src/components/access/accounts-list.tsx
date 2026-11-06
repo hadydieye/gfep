@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { ChevronLeft, ChevronRight, KeyRound, LockOpen, Search, UserCheck, UserX } from 'lucide-react';
 import { ApiErrorState, EmptyState } from '@/components/states/states';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,24 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SortSelect, SortableHead } from '@/components/ui/sortable-head';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiFetch } from '@/lib/api/client';
+import { applySort, useSort } from '@/lib/use-sort';
 import type { Account, AuthProvider, PaginatedAccounts, RoleSummary, UserStatus } from '@/lib/api/types';
 import { ACCOUNT_STATUS, AUTH_PROVIDER_LABELS, AccountStatusBadge, RoleBadge, roleLabel } from './access-labels';
 
 const PAGE_SIZES = [10, 25, 50, 100];
+
+// Colonnes triables côté serveur (N6)
+const SORT_COLUMNS = [
+  { key: 'username', label: 'Identifiant' },
+  { key: 'status', label: 'Statut' },
+  { key: 'authProvider', label: 'Méthode' },
+  { key: 'lastLoginAt', label: 'Dernière connexion' },
+  { key: 'createdAt', label: 'Date de création' },
+] as const;
+const SORT_KEYS = SORT_COLUMNS.map((column) => column.key);
 const DATE_TIME = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 
 type ListState =
@@ -44,6 +56,9 @@ export function AccountsList({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   const [limit, setLimit] = useState(25);
   const [reload, setReload] = useState(0);
   const [state, setState] = useState<ListState>({ kind: 'loading' });
+  const resetPage = useCallback(() => setPage(1), []);
+  const sorting = useSort(SORT_KEYS, resetPage);
+  const { ready: sortReady, sort, order } = sorting;
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -54,10 +69,12 @@ export function AccountsList({ isSuperAdmin }: { isSuperAdmin: boolean }) {
   }, []);
 
   useEffect(() => {
+    if (!sortReady) return;
     let active = true;
     const timer = window.setTimeout(async () => {
       setState({ kind: 'loading' });
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      applySort(params, { sort, order });
       if (search.trim()) params.set('search', search.trim());
       if (roleId) params.set('roleId', roleId);
       if (status) params.set('status', status);
@@ -74,7 +91,7 @@ export function AccountsList({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [page, limit, search, roleId, status, provider, reload, router]);
+  }, [page, limit, search, roleId, status, provider, reload, router, sortReady, sort, order]);
 
   const changeFilter = <Value,>(setter: (value: Value) => void, value: Value) => {
     setter(value);
@@ -187,6 +204,7 @@ export function AccountsList({ isSuperAdmin }: { isSuperAdmin: boolean }) {
           <option value="LOCAL">Local</option>
           <option value="ACTIVE_DIRECTORY">Active Directory</option>
         </Select>
+        <SortSelect className="md:hidden" options={SORT_COLUMNS} sort={sort} order={order} onSelect={sorting.setSort} />
       </div>
 
       {state.kind === 'error' ? (
@@ -200,11 +218,11 @@ export function AccountsList({ isSuperAdmin }: { isSuperAdmin: boolean }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nom</TableHead>
-                  <TableHead>Identifiant</TableHead>
+                  <SortableHead label="Identifiant" sortKey="username" sort={sort} order={order} onSort={sorting.toggle} />
                   <TableHead>Rôles</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead>Méthode</TableHead>
-                  <TableHead>Dernière connexion</TableHead>
+                  <SortableHead label="Statut" sortKey="status" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Méthode" sortKey="authProvider" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Dernière connexion" sortKey="lastLoginAt" sort={sort} order={order} onSort={sorting.toggle} />
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>

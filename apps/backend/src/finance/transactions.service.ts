@@ -4,11 +4,28 @@ import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { AuditService } from '../audit/audit.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { buildOrderBy } from '../common/sorting.js';
+import {
+  TRANSACTION_DEFAULT_ORDER,
+  TRANSACTION_SORTS,
+  TRANSACTION_SORT_TIEBREAKER,
+} from './finance-sorting.js';
 import { financeScopeDepartmentId } from '../rbac/roles.js';
 import { CreateTransactionDto } from './dto/create-transaction.dto.js';
 import type { FinanceUserDto } from './dto/finance-response.dto.js';
 import { PaginatedTransactionsDto, TransactionResponseDto } from './dto/finance-response.dto.js';
 import { ListTransactionsQueryDto } from './dto/list-transactions-query.dto.js';
+import type { ExportTransactionsQueryDto } from './dto/export-query.dto.js';
+import {
+  EXPORT_TOO_LARGE_MESSAGE,
+  MAX_EXPORT_ROWS,
+  TRANSACTION_STATUS_LABELS,
+  TRANSACTION_TYPE_LABELS,
+  fileStamp,
+  formatDateIso,
+  formatDecimalFr,
+  toCsv,
+} from './csv.js';
 import { UpdateTransactionStatusDto } from './dto/update-transaction-status.dto.js';
 import { DEPARTMENT_SELECT, dateRange, financeAuditEntry, loadUsers } from './finance-common.js';
 import {
@@ -19,7 +36,22 @@ import {
 
 const TRANSACTION_INCLUDE = { department: DEPARTMENT_SELECT } satisfies Prisma.TransactionInclude;
 
-type TransactionWithDepartment = Prisma.TransactionGetPayload<{ include: typeof TRANSACTION_INCLUDE }>;
+type TransactionWithDepartment = Prisma.TransactionGetPayload<{
+  include: typeof TRANSACTION_INCLUDE;
+}>;
+
+type TransactionFilters = Omit<ListTransactionsQueryDto, 'page' | 'limit'>;
+
+const EXPORT_HEADERS = [
+  'Référence',
+  'Type',
+  'Montant',
+  'Devise',
+  'Statut',
+  'Département',
+  'Description',
+  'Créée le',
+];
 
 export const STATE_CONFLICT_MESSAGE = "Cette action n'est pas possible dans l'état actuel.";
 
@@ -30,36 +62,80 @@ export class TransactionsService {
     private readonly audit: AuditService,
   ) {}
 
-  async findAll(query: ListTransactionsQueryDto, user: AuthenticatedUser): Promise<PaginatedTransactionsDto> {
+  async findAll(
+    query: ListTransactionsQueryDto,
+    user: AuthenticatedUser,
+  ): Promise<PaginatedTransactionsDto> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 25;
-    const scope = financeScopeDepartmentId(user);
-    const search = query.search?.trim();
-
-    // Scope DM dans la requête (M13) : les lignes sans département ne sont jamais visibles
-    const where: Prisma.TransactionWhereInput = {
-      AND: [
-        scope ? { departmentId: scope } : {},
-        query.departmentId ? { departmentId: query.departmentId } : {},
-        query.type ? { transactionType: query.type } : {},
-        query.status ? { status: query.status } : {},
-        search ? { reference: { contains: search, mode: 'insensitive' } } : {},
-        { createdAt: dateRange(query.from, query.to) },
-      ],
-    };
+    const where = listWhere(query, user);
 
     const [transactions, total] = await this.prisma.$transaction([
       this.prisma.transaction.findMany({
         where,
         include: TRANSACTION_INCLUDE,
-        orderBy: [{ createdAt: 'desc' }, { reference: 'desc' }],
+        orderBy: buildOrderBy(
+          query,
+          TRANSACTION_SORTS,
+          TRANSACTION_SORT_TIEBREAKER,
+          TRANSACTION_DEFAULT_ORDER,
+        ),
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.transaction.count({ where }),
     ]);
-    const users = await loadUsers(this.prisma, transactions.map((t) => t.createdBy));
+    const users = await loadUsers(
+      this.prisma,
+      transactions.map((t) => t.createdBy),
+    );
     return { data: transactions.map((t) => toResponse(t, users)), total, page, limit };
+  }
+
+  /**
+   * Export CSV (N5) : toutes les lignes des filtres et du tri de la liste, scope
+   * DM compris, au plus 10 000. Audit `transaction.export` (filtres et nombre
+   * de lignes, aucune donnée exportée).
+   */
+  async export(
+    query: ExportTransactionsQueryDto,
+    user: AuthenticatedUser,
+    sourceIp: string,
+  ): Promise<{ filename: string; content: string }> {
+    const where = listWhere(query, user);
+    if ((await this.prisma.transaction.count({ where })) > MAX_EXPORT_ROWS) {
+      throw new BusinessRuleException(EXPORT_TOO_LARGE_MESSAGE);
+    }
+    const rows = await this.prisma.transaction.findMany({
+      where,
+      include: TRANSACTION_INCLUDE,
+      orderBy: buildOrderBy(
+        query,
+        TRANSACTION_SORTS,
+        TRANSACTION_SORT_TIEBREAKER,
+        TRANSACTION_DEFAULT_ORDER,
+      ),
+    });
+    const content = toCsv(
+      EXPORT_HEADERS,
+      rows.map((t) => [
+        t.reference,
+        TRANSACTION_TYPE_LABELS[t.transactionType],
+        formatDecimalFr(t.amount.toFixed(2)),
+        t.currency,
+        TRANSACTION_STATUS_LABELS[t.status],
+        t.department?.name ?? '',
+        t.description ?? '',
+        formatDateIso(t.createdAt),
+      ]),
+    );
+    await this.prisma.$transaction((tx) =>
+      this.audit.record(tx, {
+        ...financeAuditEntry(user, 'transaction.export', 'Transaction', 'export', sourceIp),
+        newValues: { exportFilters: exportFilters(query), exportedRows: rows.length },
+      }),
+    );
+    return { filename: `transactions-${fileStamp()}.csv`, content };
   }
 
   async create(
@@ -94,11 +170,16 @@ export class TransactionsService {
           });
           return created;
         });
-        return toResponse(transaction, new Map([[user.id, { id: user.id, username: user.username }]]));
+        return toResponse(
+          transaction,
+          new Map([[user.id, { id: user.id, username: user.username }]]),
+        );
       } catch (error) {
         if (!isUniqueViolationOn(error, 'reference')) throw error;
         if (attempt >= MAX_TRANSACTION_REFERENCE_ATTEMPTS) {
-          throw new ConflictException("Impossible d'attribuer une référence de transaction. Réessayez.");
+          throw new ConflictException(
+            "Impossible d'attribuer une référence de transaction. Réessayez.",
+          );
         }
       }
     }
@@ -162,4 +243,38 @@ export function toResponse(
     department: transaction.department,
     createdBy: users.get(transaction.createdBy) ?? null,
   };
+}
+
+/** Filtres de la liste et de l'export ; scope DM dans la requête (M13) : les lignes sans département ne sont jamais visibles. */
+function listWhere(
+  query: TransactionFilters,
+  user: AuthenticatedUser,
+): Prisma.TransactionWhereInput {
+  const scope = financeScopeDepartmentId(user);
+  const search = query.search?.trim();
+  return {
+    AND: [
+      scope ? { departmentId: scope } : {},
+      query.departmentId ? { departmentId: query.departmentId } : {},
+      query.type ? { transactionType: query.type } : {},
+      query.status ? { status: query.status } : {},
+      search ? { reference: { contains: search, mode: 'insensitive' } } : {},
+      { createdAt: dateRange(query.from, query.to) },
+    ],
+  };
+}
+
+/** Filtres effectivement appliqués, pour l'audit d'un export (valeurs vides omises). */
+function exportFilters(query: TransactionFilters): Record<string, string> {
+  const entries = Object.entries({
+    type: query.type,
+    status: query.status,
+    departmentId: query.departmentId,
+    from: query.from,
+    to: query.to,
+    search: query.search?.trim(),
+    sort: query.sort,
+    order: query.sort ? (query.order ?? 'asc') : undefined,
+  }).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '');
+  return Object.fromEntries(entries);
 }

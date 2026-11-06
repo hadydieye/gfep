@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { ArrowLeft, Upload } from 'lucide-react';
 import Link from 'next/link';
 import { ApiErrorState } from '@/components/states/states';

@@ -1,6 +1,8 @@
 import { TransactionStatus, TransactionType } from '@prisma/client';
 import { Type } from 'class-transformer';
 import { IsEnum, IsISO8601, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { IsSortKey, IsSortOrder, type SortOrder } from '../../common/sorting.js';
+import { TRANSACTION_SORTS } from '../finance-sorting.js';
 
 export class ListTransactionsQueryDto {
   @IsOptional()
@@ -45,4 +47,10 @@ export class ListTransactionsQueryDto {
   @IsString()
   @MaxLength(100)
   search?: string;
+
+  @IsSortKey(TRANSACTION_SORTS)
+  sort?: string;
+
+  @IsSortOrder()
+  order?: SortOrder;
 }

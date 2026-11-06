@@ -40,5 +40,7 @@ describe('Property 4: Design System page palette completeness', () => {
       ),
       { numRuns: 100 },
     );
-  });
+    // 100 rendus complets de la page : délai explicite (N12), le défaut de 5 s
+    // était trop serré sous charge.
+  }, 30_000);
 });

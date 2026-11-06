@@ -4,12 +4,34 @@ import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { AuditService } from '../audit/audit.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { buildOrderBy } from '../common/sorting.js';
+import {
+  INVOICE_DEFAULT_ORDER,
+  INVOICE_SORTS,
+  INVOICE_SORT_TIEBREAKER,
+} from './finance-sorting.js';
 import { financeScopeDepartmentId } from '../rbac/roles.js';
 import type { FinanceUserDto } from './dto/finance-response.dto.js';
 import { InvoiceResponseDto, PaginatedInvoicesDto } from './dto/finance-response.dto.js';
 import { ListInvoicesQueryDto } from './dto/list-invoices-query.dto.js';
+import type { ExportInvoicesQueryDto } from './dto/export-query.dto.js';
+import {
+  EXPORT_TOO_LARGE_MESSAGE,
+  INVOICE_STATUS_LABELS,
+  MAX_EXPORT_ROWS,
+  fileStamp,
+  formatDateIso,
+  formatDecimalFr,
+  toCsv,
+} from './csv.js';
 import { UpdateInvoiceStatusDto } from './dto/update-invoice-status.dto.js';
-import { DEPARTMENT_SELECT, dateRange, financeAuditEntry, hasPermission, loadUsers } from './finance-common.js';
+import {
+  DEPARTMENT_SELECT,
+  dateRange,
+  financeAuditEntry,
+  hasPermission,
+  loadUsers,
+} from './finance-common.js';
 import {
   FORBIDDEN_INVOICE_TRANSITION_MESSAGE,
   INVOICE_TRANSITIONS,
@@ -28,33 +50,69 @@ export class InvoicesService {
     private readonly audit: AuditService,
   ) {}
 
-  async findAll(query: ListInvoicesQueryDto, user: AuthenticatedUser): Promise<PaginatedInvoicesDto> {
+  async findAll(
+    query: ListInvoicesQueryDto,
+    user: AuthenticatedUser,
+  ): Promise<PaginatedInvoicesDto> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 25;
-    const search = query.search?.trim();
-
-    const where: Prisma.InvoiceWhereInput = {
-      AND: [
-        scopeWhere(user),
-        query.departmentId ? { departmentId: query.departmentId } : {},
-        query.status ? { status: query.status } : {},
-        search ? { clientName: { contains: search, mode: 'insensitive' } } : {},
-        { dueDate: dateRange(query.dueFrom, query.dueTo) },
-      ],
-    };
+    const where = listWhere(query, user);
 
     const [invoices, total] = await this.prisma.$transaction([
       this.prisma.invoice.findMany({
         where,
         include: INVOICE_INCLUDE,
-        orderBy: [{ dueDate: 'desc' }, { invoiceNumber: 'desc' }],
+        orderBy: buildOrderBy(query, INVOICE_SORTS, INVOICE_SORT_TIEBREAKER, INVOICE_DEFAULT_ORDER),
         skip: (page - 1) * limit,
         take: limit,
       }),
       this.prisma.invoice.count({ where }),
     ]);
-    const users = await loadUsers(this.prisma, invoices.map((i) => i.createdBy));
+    const users = await loadUsers(
+      this.prisma,
+      invoices.map((i) => i.createdBy),
+    );
     return { data: invoices.map((i) => toResponse(i, users, user)), total, page, limit };
+  }
+
+  /**
+   * Export CSV (N5) : toutes les factures des filtres et du tri de la liste,
+   * scope DM compris, au plus 10 000. Audit `invoice.export`.
+   */
+  async export(
+    query: ExportInvoicesQueryDto,
+    user: AuthenticatedUser,
+    sourceIp: string,
+  ): Promise<{ filename: string; content: string }> {
+    const where = listWhere(query, user);
+    if ((await this.prisma.invoice.count({ where })) > MAX_EXPORT_ROWS) {
+      throw new BusinessRuleException(EXPORT_TOO_LARGE_MESSAGE);
+    }
+    const rows = await this.prisma.invoice.findMany({
+      where,
+      include: INVOICE_INCLUDE,
+      orderBy: buildOrderBy(query, INVOICE_SORTS, INVOICE_SORT_TIEBREAKER, INVOICE_DEFAULT_ORDER),
+    });
+    const content = toCsv(
+      EXPORT_HEADERS,
+      rows.map((i) => [
+        i.invoiceNumber,
+        i.clientName,
+        formatDecimalFr(i.amount.toFixed(2)),
+        i.currency,
+        formatDateIso(i.dueDate),
+        INVOICE_STATUS_LABELS[i.status],
+        i.department?.name ?? '',
+        formatDateIso(i.createdAt),
+      ]),
+    );
+    await this.prisma.$transaction((tx) =>
+      this.audit.record(tx, {
+        ...financeAuditEntry(user, 'invoice.export', 'Invoice', 'export', sourceIp),
+        newValues: { exportFilters: exportFilters(query), exportedRows: rows.length },
+      }),
+    );
+    return { filename: `factures-${fileStamp()}.csv`, content };
   }
 
   /** Détail ; hors du scope DM, la facture est traitée comme inexistante (404). */
@@ -125,4 +183,45 @@ function toResponse(
       ? [...INVOICE_TRANSITIONS[invoice.status]]
       : ([] as InvoiceStatus[]),
   };
+}
+
+type InvoiceFilters = Omit<ListInvoicesQueryDto, 'page' | 'limit'>;
+
+const EXPORT_HEADERS = [
+  'Numéro',
+  'Client',
+  'Montant',
+  'Devise',
+  'Échéance',
+  'Statut',
+  'Département',
+  'Créée le',
+];
+
+/** Filtres de la liste et de l'export, scope DM compris (M13). */
+function listWhere(query: InvoiceFilters, user: AuthenticatedUser): Prisma.InvoiceWhereInput {
+  const search = query.search?.trim();
+  return {
+    AND: [
+      scopeWhere(user),
+      query.departmentId ? { departmentId: query.departmentId } : {},
+      query.status ? { status: query.status } : {},
+      search ? { clientName: { contains: search, mode: 'insensitive' } } : {},
+      { dueDate: dateRange(query.dueFrom, query.dueTo) },
+    ],
+  };
+}
+
+/** Filtres effectivement appliqués, pour l'audit d'un export (valeurs vides omises). */
+function exportFilters(query: InvoiceFilters): Record<string, string> {
+  const entries = Object.entries({
+    status: query.status,
+    departmentId: query.departmentId,
+    dueFrom: query.dueFrom,
+    dueTo: query.dueTo,
+    search: query.search?.trim(),
+    sort: query.sort,
+    order: query.sort ? (query.order ?? 'asc') : undefined,
+  }).filter((entry): entry is [string, string] => typeof entry[1] === 'string' && entry[1] !== '');
+  return Object.fromEntries(entries);
 }

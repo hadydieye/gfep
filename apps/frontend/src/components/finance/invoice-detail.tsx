@@ -3,8 +3,9 @@
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { ArrowLeft, RefreshCw } from 'lucide-react';
+import { toast } from '@/components/ui/sonner';
+import { RefreshCw } from 'lucide-react';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/dialog';
 import { Select } from '@/components/ui/select';
@@ -56,10 +57,8 @@ export function InvoiceDetail({ invoice: initialInvoice }: { invoice: Invoice })
 
   return (
     <div className="flex flex-col gap-5">
+      <Breadcrumb items={[{ label: 'Finance' }, { label: 'Factures', href: '/finance/invoices' }, { label: invoice.invoiceNumber }]} />
       <div className="flex flex-wrap items-center gap-3">
-        <Button asChild variant="secondary" size="icon" aria-label="Retour aux factures">
-          <Link href="/finance/invoices"><ArrowLeft className="h-4 w-4" aria-hidden /></Link>
-        </Button>
         <h1 className="text-2xl font-semibold tabular-nums text-foreground-primary">{invoice.invoiceNumber}</h1>
         <InvoiceStatusBadge status={invoice.status} />
       </div>

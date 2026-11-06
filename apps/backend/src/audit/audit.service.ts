@@ -12,8 +12,9 @@ const AUDIT_FIELDS: Record<string, readonly string[]> = {
     'validationStatus',
   ],
   DocumentPermission: ['documentId', 'userId', 'permission'],
-  Transaction: ['reference', 'transactionType', 'amount', 'currency', 'status', 'departmentId'],
-  Invoice: ['invoiceNumber', 'status', 'departmentId'],
+  // exportFilters / exportedRows : audit d'un export CSV (N5), jamais les données exportées
+  Transaction: ['reference', 'transactionType', 'amount', 'currency', 'status', 'departmentId', 'exportFilters', 'exportedRows'],
+  Invoice: ['invoiceNumber', 'status', 'departmentId', 'exportFilters', 'exportedRows'],
   Employee: [
     'employeeNumber',
     'firstName',

@@ -6,7 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
+import { applyTheme, currentTheme } from '@/lib/theme';
 
 const GFEP_PALETTE = [
   { name: 'Primary', light: '#0F4C3A', dark: '#1A6B52' },
@@ -24,24 +25,13 @@ const GFEP_PALETTE = [
 export default function DesignSystemPage() {
   const [isDark, setIsDark] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem('gfep-theme');
-    if (stored === 'dark') {
-      document.documentElement.classList.add('dark');
-      setIsDark(true);
-    }
-  }, []);
+  // Même mécanisme que la topbar (N8) : cookie gfep-theme, classe posée par le serveur
+  useEffect(() => setIsDark(currentTheme() === 'dark'), []);
 
   const toggleTheme = () => {
-    const newIsDark = !isDark;
-    setIsDark(newIsDark);
-    if (newIsDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('gfep-theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('gfep-theme', 'light');
-    }
+    const next = isDark ? 'light' : 'dark';
+    applyTheme(next);
+    setIsDark(next === 'dark');
   };
 
   return (
@@ -343,7 +333,7 @@ export default function DesignSystemPage() {
                 </Button>
                 <Button
                   variant="destructive"
-                  onClick={() => toast.error('Erreur persistante', { duration: Infinity })}
+                  onClick={() => toast.error('Erreur persistante')}
                 >
                   Error (persistant)
                 </Button>

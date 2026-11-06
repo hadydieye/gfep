@@ -1,5 +1,7 @@
 import { AuthEventType, SecuritySeverity } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { IsSortKey, IsSortOrder, type SortOrder } from '../../common/sorting.js';
+import { AUDIT_LOG_SORTS, AUTH_EVENT_SORTS, SECURITY_EVENT_SORTS } from '../audit-sorting.js';
 import { IsEnum, IsISO8601, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 class PeriodQueryDto {
@@ -54,6 +56,12 @@ export class ListAuditLogsQueryDto extends PeriodQueryDto {
   @IsOptional()
   @IsUUID()
   resourceId?: string;
+
+  @IsSortKey(AUDIT_LOG_SORTS)
+  sort?: string;
+
+  @IsSortOrder()
+  order?: SortOrder;
 }
 
 export class ListSecurityEventsQueryDto extends PeriodQueryDto {
@@ -65,6 +73,12 @@ export class ListSecurityEventsQueryDto extends PeriodQueryDto {
   @IsString()
   @MaxLength(50)
   eventType?: string;
+
+  @IsSortKey(SECURITY_EVENT_SORTS)
+  sort?: string;
+
+  @IsSortOrder()
+  order?: SortOrder;
 }
 
 export class ListAuthEventsQueryDto extends PeriodQueryDto {
@@ -81,4 +95,10 @@ export class ListAuthEventsQueryDto extends PeriodQueryDto {
   @IsOptional()
   @IsEnum(AuthEventType)
   eventType?: AuthEventType;
+
+  @IsSortKey(AUTH_EVENT_SORTS)
+  sort?: string;
+
+  @IsSortOrder()
+  order?: SortOrder;
 }

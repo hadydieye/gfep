@@ -137,7 +137,24 @@ describe('Critère 2.4 : comportement distinct des 8 rôles (intégration)', () 
         ...Object.keys(body).filter((k) => !['role', 'indicators', 'recentActivity'].includes(k)),
       ].sort();
 
-    expect(signature(dashboards.admin)).toEqual(['indicators.totalEmployees', 'recentAccounts', 'services']);
+    // SUPER_ADMIN : vue consolidée de tous les indicateurs (AppFlow §5, N10, étape 3.1)
+    expect(signature(dashboards.admin)).toEqual([
+      'headcountByDepartment',
+      'indicators.month',
+      'indicators.monthExpense',
+      'indicators.monthIncome',
+      'indicators.pendingInvoicesTotal',
+      'indicators.totalEmployees',
+      'pendingDocuments',
+      'pendingDocumentsTotal',
+      'pendingInvoices',
+      'recentAccounts',
+      'recentHires',
+      'recentSecurityEvents',
+      'recentTransactions',
+      'securityAlerts',
+      'services',
+    ]);
     expect(signature(dashboards.itAdmin)).toEqual(['recentAccounts', 'recentSecurityEvents', 'services']);
     expect(signature(dashboards.itTech)).toEqual(['services']);
     expect(signature(dashboards.hr)).toEqual(['headcountByDepartment', 'indicators.totalEmployees', 'recentHires']);

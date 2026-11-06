@@ -1,5 +1,7 @@
 import { EmploymentStatus } from '@prisma/client';
 import { Type } from 'class-transformer';
+import { IsSortKey, IsSortOrder, type SortOrder } from '../../common/sorting.js';
+import { EMPLOYEE_SORTS } from '../employee-sorting.js';
 import { IsEnum, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
 export class PaginationQueryDto {
@@ -28,4 +30,10 @@ export class PaginationQueryDto {
   @IsOptional()
   @IsEnum(EmploymentStatus)
   status?: EmploymentStatus;
+
+  @IsSortKey(EMPLOYEE_SORTS)
+  sort?: string;
+
+  @IsSortOrder()
+  order?: SortOrder;
 }

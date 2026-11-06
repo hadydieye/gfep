@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { Plus, Trash2 } from 'lucide-react';
 import { ApiErrorState, EmptyState } from '@/components/states/states';
 import { Button } from '@/components/ui/button';
@@ -140,7 +140,8 @@ export function AdMappingsManager({ isSuperAdmin }: { isSuperAdmin: boolean }) {
       ) : state.kind === 'ready' && state.mappings.length === 0 ? (
         <EmptyState message="Aucun groupe d’annuaire n’est associé à un rôle." />
       ) : (
-        <div className="overflow-auto rounded-[8px] border border-border bg-background-surface">
+        <>
+        <div className="hidden overflow-auto rounded-[8px] border border-border bg-background-surface md:block">
           <Table>
             <TableHeader>
               <TableRow>
@@ -171,6 +172,26 @@ export function AdMappingsManager({ isSuperAdmin }: { isSuperAdmin: boolean }) {
             </TableBody>
           </Table>
         </div>
+        {/* Mobile : cartes empilées (04 §6) */}
+        <div className="flex flex-col gap-2 md:hidden">
+          {state.kind === 'loading'
+            ? Array.from({ length: 3 }, (_, index) => <Skeleton key={index} className="h-24 w-full" />)
+            : state.mappings.map((mapping) => (
+                <div key={mapping.id} className="flex flex-col gap-2 rounded-[8px] border border-border bg-background-surface p-4">
+                  <span className="break-all font-mono text-xs text-foreground-primary">{mapping.adGroupDn}</span>
+                  <span className="flex items-center justify-between gap-2">
+                    <RoleBadge name={mapping.role.name} />
+                    {canManage(mapping) && (
+                      <Button size="sm" variant="secondary" onClick={() => setToDelete(mapping)}>
+                        <Trash2 className="h-4 w-4" aria-hidden />
+                        Supprimer
+                      </Button>
+                    )}
+                  </span>
+                </div>
+              ))}
+        </div>
+        </>
       )}
 
       <ConfirmDialog

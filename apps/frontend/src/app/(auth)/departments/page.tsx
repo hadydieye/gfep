@@ -24,7 +24,7 @@ export default async function DepartmentsPage() {
             <Link
               key={department.id}
               href={`/departments/${department.id}`}
-              className="group flex flex-col gap-4 rounded-[8px] border border-border bg-background-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)] transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link"
+              className="group flex flex-col gap-4 rounded-[8px] border border-border bg-background-surface p-6 shadow-card transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link"
             >
               <div className="flex items-start justify-between gap-2">
                 <div>

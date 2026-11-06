@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/sonner';
 import { Check, ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react';
 import { ApiErrorState, EmptyState } from '@/components/states/states';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,10 @@ import { ConfirmDialog } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SortSelect, SortableHead } from '@/components/ui/sortable-head';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiFetch } from '@/lib/api/client';
+import { applySort, useSort } from '@/lib/use-sort';
 import type {
   Department,
   PaginatedTransactions,
@@ -21,9 +23,21 @@ import type {
   TransactionType,
 } from '@/lib/api/types';
 import { TRANSACTION_TYPE_LABEL, TransactionStatusBadge } from './finance-badges';
+import { ExportButton } from './export-button';
 import { MoneyAmount } from './money-amount';
 
 const PAGE_SIZES = [10, 25, 50, 100];
+
+// Colonnes triables côté serveur (N6)
+const SORT_COLUMNS = [
+  { key: 'reference', label: 'Référence' },
+  { key: 'createdAt', label: 'Date' },
+  { key: 'type', label: 'Type' },
+  { key: 'department', label: 'Département' },
+  { key: 'amount', label: 'Montant' },
+  { key: 'status', label: 'Statut' },
+] as const;
+const SORT_KEYS = SORT_COLUMNS.map((column) => column.key);
 
 type ListState =
   | { kind: 'loading' }
@@ -47,6 +61,9 @@ export function TransactionsList({ canCreate, canValidate }: { canCreate: boolea
   const [limit, setLimit] = useState(25);
   const [reload, setReload] = useState(0);
   const [state, setState] = useState<ListState>({ kind: 'loading' });
+  const resetPage = useCallback(() => setPage(1), []);
+  const sorting = useSort(SORT_KEYS, resetPage);
+  const { ready: sortReady, sort, order } = sorting;
   const [decision, setDecision] = useState<Decision | null>(null);
   const [deciding, setDeciding] = useState(false);
 
@@ -57,10 +74,12 @@ export function TransactionsList({ canCreate, canValidate }: { canCreate: boolea
   }, []);
 
   useEffect(() => {
+    if (!sortReady) return;
     let active = true;
     const timer = window.setTimeout(async () => {
       setState({ kind: 'loading' });
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      applySort(params, { sort, order });
       if (search.trim()) params.set('search', search.trim());
       if (type) params.set('type', type);
       if (status) params.set('status', status);
@@ -79,7 +98,7 @@ export function TransactionsList({ canCreate, canValidate }: { canCreate: boolea
       active = false;
       window.clearTimeout(timer);
     };
-  }, [page, limit, search, type, status, departmentId, from, to, reload, router]);
+  }, [page, limit, search, type, status, departmentId, from, to, reload, router, sortReady, sort, order]);
 
   const changeFilter = <Value,>(setter: (value: Value) => void, value: Value) => {
     setter(value);
@@ -112,6 +131,16 @@ export function TransactionsList({ canCreate, canValidate }: { canCreate: boolea
     refresh();
   };
 
+  // Filtres et tri courants, sans pagination, pour l'export CSV (N5)
+  const exportQuery = new URLSearchParams();
+  if (search.trim()) exportQuery.set('search', search.trim());
+  if (type) exportQuery.set('type', type);
+  if (status) exportQuery.set('status', status);
+  if (departmentId) exportQuery.set('departmentId', departmentId);
+  if (from) exportQuery.set('from', from);
+  if (to) exportQuery.set('to', to);
+  applySort(exportQuery, { sort, order });
+
   const totalPages = state.kind === 'ready' ? Math.max(1, Math.ceil(state.result.total / limit)) : 1;
   const columns = canValidate ? 8 : 7;
   const decisionButtons = (transaction: Transaction) =>
@@ -132,14 +161,17 @@ export function TransactionsList({ canCreate, canValidate }: { canCreate: boolea
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold text-foreground-primary">Transactions</h1>
-        {canCreate && (
-          <Button asChild>
-            <Link href="/finance/transactions/new">
-              <Plus className="h-4 w-4" aria-hidden />
-              Nouvelle transaction
-            </Link>
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          <ExportButton path="/transactions/export" query={exportQuery} />
+          {canCreate && (
+            <Button asChild>
+              <Link href="/finance/transactions/new">
+                <Plus className="h-4 w-4" aria-hidden />
+                Nouvelle transaction
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
@@ -171,6 +203,7 @@ export function TransactionsList({ canCreate, canValidate }: { canCreate: boolea
         </Select>
         <Input label="Du" type="date" value={from} max={to || undefined} onChange={(event) => changeFilter(setFrom, event.target.value)} />
         <Input label="Au" type="date" value={to} min={from || undefined} onChange={(event) => changeFilter(setTo, event.target.value)} />
+        <SortSelect className="md:hidden" options={SORT_COLUMNS} sort={sort} order={order} onSelect={sorting.setSort} />
       </div>
 
       {state.kind === 'error' ? (
@@ -189,13 +222,13 @@ export function TransactionsList({ canCreate, canValidate }: { canCreate: boolea
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Référence</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Département</TableHead>
+                  <SortableHead label="Référence" sortKey="reference" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Date" sortKey="createdAt" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Type" sortKey="type" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Département" sortKey="department" sort={sort} order={order} onSort={sorting.toggle} />
                   <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Montant</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <SortableHead label="Montant" sortKey="amount" sort={sort} order={order} onSort={sorting.toggle} className="text-right" />
+                  <SortableHead label="Statut" sortKey="status" sort={sort} order={order} onSort={sorting.toggle} />
                   {canValidate && <TableHead className="text-right">Décision</TableHead>}
                 </TableRow>
               </TableHeader>

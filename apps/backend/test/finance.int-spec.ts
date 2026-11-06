@@ -529,7 +529,12 @@ describe('Finance (intégration)', () => {
     });
 
     it('aucune carte finance pour les autres rôles (DM : rien de plus, AppFlow §5)', async () => {
-      for (const role of ['admin', 'manager', 'employee'] as const) {
+      // Étape 3.1 (gfep-mvp3 N10) : le SUPER_ADMIN reçoit la vue consolidée, finance comprise
+      const admin = await call('GET', '/dashboard', sessions.admin);
+      expect(admin.body.recentTransactions).toBeDefined();
+      expect(admin.body.pendingInvoices).toBeDefined();
+      expect(admin.body.indicators.monthIncome).toBeDefined();
+      for (const role of ['manager', 'employee'] as const) {
         const response = await call('GET', '/dashboard', sessions[role]);
         expect(response.status).toBe(200);
         expect(response.body.recentTransactions).toBeUndefined();

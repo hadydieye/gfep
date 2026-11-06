@@ -61,7 +61,8 @@ export default async function DashboardPage() {
   );
 }
 
-// Vue consolidée (design §6.2) : effectif, état des services, comptes récents
+// Vue consolidée de tous les indicateurs (AppFlow §5, N10) : effectifs, finance,
+// documents en attente de tous les départements, sécurité, comptes, services
 function AdminCards({ data }: { data: DashboardData }) {
   return (
     <>
@@ -71,9 +72,28 @@ function AdminCards({ data }: { data: DashboardData }) {
         value={data.indicators.totalEmployees ?? 0}
         subtitle="Employés actifs"
       />
-      {data.services && <ServiceStatusCard services={data.services} />}
+      <AccountantCards data={data} />
+      <DocumentListCard
+        label="Documents en attente de validation"
+        icon={FileClock}
+        documents={data.pendingDocuments ?? []}
+        total={data.pendingDocumentsTotal}
+        emptyMessage="Aucun document en attente de validation."
+      />
+      <HeadcountCards data={data} />
+      <SecurityEventsCard
+        label="Alertes de sécurité"
+        events={data.securityAlerts ?? []}
+        emptyMessage="Aucune alerte de sévérité élevée ou critique."
+      />
+      <SecurityEventsCard
+        label="Événements de sécurité récents"
+        events={data.recentSecurityEvents ?? []}
+        emptyMessage="Aucun événement de sécurité."
+      />
       {data.recentAccounts && <RecentAccountsCard accounts={data.recentAccounts} />}
       <RecentActivityCard logs={data.recentActivity} label="Activité récente" />
+      {data.services && <ServiceStatusCard services={data.services} />}
       <DashboardCard label="Accès rapides" icon={Zap}>
         <ul className="flex flex-col gap-2 text-sm">
           <li>
@@ -84,6 +104,11 @@ function AdminCards({ data }: { data: DashboardData }) {
           <li>
             <Link href="/departments" className="inline-flex items-center gap-2 text-link hover:underline">
               <Building2 className="h-4 w-4" aria-hidden /> Départements
+            </Link>
+          </li>
+          <li>
+            <Link href="/documents" className="inline-flex items-center gap-2 text-link hover:underline">
+              <FileText className="h-4 w-4" aria-hidden /> Documents
             </Link>
           </li>
           <li>
@@ -217,10 +242,19 @@ function RecentAccountsCard({ accounts }: { accounts: NonNullable<DashboardData[
 }
 
 function HrCards({ data }: { data: DashboardData }) {
-  const hires = data.recentHires ?? [];
   return (
     <>
       <DashboardCard label="Effectif global" icon={Users} value={data.indicators.totalEmployees ?? 0} subtitle="Employés actifs" />
+      <HeadcountCards data={data} />
+    </>
+  );
+}
+
+// Répartition par département et dernières embauches (HR, SA)
+function HeadcountCards({ data }: { data: DashboardData }) {
+  const hires = data.recentHires ?? [];
+  return (
+    <>
       <DashboardCard label="Répartition par département" icon={Building2} className="md:col-span-2">
         <HeadcountChart data={data.headcountByDepartment ?? []} />
       </DashboardCard>
@@ -423,15 +457,23 @@ function DocumentListCard({
   label,
   icon,
   documents,
+  total,
   emptyMessage,
 }: {
   label: string;
   icon: LucideIcon;
   documents: Array<{ id: string; title: string; createdAt: string }>;
+  /** Nombre total (SA, N10) quand la liste n'en montre qu'une partie */
+  total?: number;
   emptyMessage: string;
 }) {
   return (
-    <DashboardCard label={label} icon={icon}>
+    <DashboardCard
+      label={label}
+      icon={icon}
+      value={total}
+      subtitle={total !== undefined && total > documents.length ? `Les ${documents.length} plus récents` : undefined}
+    >
       {documents.length === 0 ? (
         <p className="text-sm text-foreground-secondary">{emptyMessage}</p>
       ) : (

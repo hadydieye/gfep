@@ -9,13 +9,30 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { SortSelect, SortableHead } from '@/components/ui/sortable-head';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { apiFetch } from '@/lib/api/client';
+import { applySort, useSort } from '@/lib/use-sort';
 import type { Department, EmploymentStatus, PaginatedEmployees } from '@/lib/api/types';
 import { STATUS_LABELS, StatusBadge, formatDate } from './status-badge';
 
 const PAGE_SIZES = [10, 25, 50, 100];
-const COLUMNS = ['Nom complet', 'Département', 'Poste', 'Statut', "Date d'embauche"];
+// Colonnes du tableau et clé de tri côté serveur (N6)
+const COLUMNS = [
+  { key: 'lastName', label: 'Nom complet' },
+  { key: 'department', label: 'Département' },
+  { key: 'position', label: 'Poste' },
+  { key: 'status', label: 'Statut' },
+  { key: 'hireDate', label: "Date d'embauche" },
+] as const;
+const SORT_KEYS = COLUMNS.map((column) => column.key);
 
 type ListState =
   | { kind: 'loading' }
@@ -32,6 +49,9 @@ export function EmployeesList({ canCreate }: { canCreate: boolean }) {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(25);
   const [state, setState] = useState<ListState>({ kind: 'loading' });
+  const resetPage = useCallback(() => setPage(1), []);
+  const sorting = useSort(SORT_KEYS, resetPage);
+  const { ready: sortReady, sort, order } = sorting;
 
   useEffect(() => {
     void apiFetch<Department[]>('/departments').then((r) => r.ok && setDepartments(r.data));
@@ -47,8 +67,10 @@ export function EmployeesList({ canCreate }: { canCreate: boolean }) {
   }, [searchInput]);
 
   const load = useCallback(async () => {
+    if (!sortReady) return;
     setState({ kind: 'loading' });
     const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    applySort(params, { sort, order });
     if (search) params.set('search', search);
     if (departmentId) params.set('departmentId', departmentId);
     if (status) params.set('status', status);
@@ -57,8 +79,10 @@ export function EmployeesList({ canCreate }: { canCreate: boolean }) {
       router.push('/login');
       return;
     }
-    setState(result.ok ? { kind: 'ready', result: result.data } : { kind: 'error', status: result.status });
-  }, [page, limit, search, departmentId, status, router]);
+    setState(
+      result.ok ? { kind: 'ready', result: result.data } : { kind: 'error', status: result.status },
+    );
+  }, [page, limit, search, departmentId, status, router, sortReady, sort, order]);
 
   useEffect(() => {
     void load();
@@ -83,7 +107,10 @@ export function EmployeesList({ canCreate }: { canCreate: boolean }) {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-[2fr_1fr_1fr]">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-3 top-[34px] h-4 w-4 text-foreground-secondary" aria-hidden />
+          <Search
+            className="pointer-events-none absolute left-3 top-[34px] h-4 w-4 text-foreground-secondary"
+            aria-hidden
+          />
           <Input
             label="Rechercher"
             placeholder="Nom ou prénom"
@@ -122,6 +149,13 @@ export function EmployeesList({ canCreate }: { canCreate: boolean }) {
             </option>
           ))}
         </Select>
+        <SortSelect
+          className="md:hidden"
+          options={COLUMNS}
+          sort={sort}
+          order={order}
+          onSelect={sorting.setSort}
+        />
       </div>
 
       {state.kind === 'error' ? (
@@ -133,48 +167,84 @@ export function EmployeesList({ canCreate }: { canCreate: boolean }) {
       ) : state.kind === 'ready' && state.result.data.length === 0 ? (
         <EmptyState message="Aucun employé trouvé" />
       ) : (
-        <div className="max-h-[70vh] overflow-auto rounded-[8px] border border-border bg-background-surface">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {COLUMNS.map((column) => (
-                  <TableHead key={column}>{column}</TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {state.kind === 'loading'
-                ? Array.from({ length: 5 }, (_, i) => (
-                    <TableRow key={i} aria-hidden>
-                      {COLUMNS.map((column) => (
-                        <TableCell key={column}>
-                          <Skeleton className="h-4 w-24" />
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                : state.result.data.map((employee) => (
-                    <TableRow
-                      key={employee.id}
-                      className="cursor-pointer"
-                      tabIndex={0}
-                      onClick={() => router.push(`/employees/${employee.id}`)}
-                      onKeyDown={(e) => e.key === 'Enter' && router.push(`/employees/${employee.id}`)}
-                    >
-                      <TableCell className="font-medium">
-                        {employee.firstName} {employee.lastName}
-                      </TableCell>
-                      <TableCell>{employee.department.name}</TableCell>
-                      <TableCell>{employee.position.title}</TableCell>
-                      <TableCell>
-                        <StatusBadge status={employee.employmentStatus} />
-                      </TableCell>
-                      <TableCell>{formatDate(employee.hireDate)}</TableCell>
-                    </TableRow>
+        <>
+          <div className="hidden max-h-[70vh] overflow-auto rounded-[8px] border border-border bg-background-surface md:block">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  {COLUMNS.map((column) => (
+                    <SortableHead
+                      key={column.key}
+                      label={column.label}
+                      sortKey={column.key}
+                      sort={sort}
+                      order={order}
+                      onSort={sorting.toggle}
+                    />
                   ))}
-            </TableBody>
-          </Table>
-        </div>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {state.kind === 'loading'
+                  ? Array.from({ length: 5 }, (_, i) => (
+                      <TableRow key={i} aria-hidden>
+                        {COLUMNS.map((column) => (
+                          <TableCell key={column.key}>
+                            <Skeleton className="h-4 w-24" />
+                          </TableCell>
+                        ))}
+                      </TableRow>
+                    ))
+                  : state.result.data.map((employee) => (
+                      <TableRow
+                        key={employee.id}
+                        className="cursor-pointer"
+                        tabIndex={0}
+                        onClick={() => router.push(`/employees/${employee.id}`)}
+                        onKeyDown={(e) =>
+                          e.key === 'Enter' && router.push(`/employees/${employee.id}`)
+                        }
+                      >
+                        <TableCell className="font-medium">
+                          {employee.firstName} {employee.lastName}
+                        </TableCell>
+                        <TableCell>{employee.department.name}</TableCell>
+                        <TableCell>{employee.position.title}</TableCell>
+                        <TableCell>
+                          <StatusBadge status={employee.employmentStatus} />
+                        </TableCell>
+                        <TableCell>{formatDate(employee.hireDate)}</TableCell>
+                      </TableRow>
+                    ))}
+              </TableBody>
+            </Table>
+          </div>
+          {/* Mobile : cartes empilées plutôt que colonnes (04 §6) */}
+          <div className="flex flex-col gap-2 md:hidden" data-testid="employees-cards">
+            {state.kind === 'loading'
+              ? Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-24 w-full" />)
+              : state.result.data.map((employee) => (
+                  <Link
+                    key={employee.id}
+                    href={`/employees/${employee.id}`}
+                    className="flex flex-col gap-2 rounded-[8px] border border-border bg-background-surface p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-link"
+                  >
+                    <span className="flex items-start justify-between gap-2">
+                      <span className="font-medium text-foreground-primary">
+                        {employee.firstName} {employee.lastName}
+                      </span>
+                      <StatusBadge status={employee.employmentStatus} />
+                    </span>
+                    <span className="text-sm text-foreground-secondary">
+                      {employee.position.title} · {employee.department.name}
+                    </span>
+                    <span className="text-xs text-foreground-secondary">
+                      Date d’embauche : {formatDate(employee.hireDate)}
+                    </span>
+                  </Link>
+                ))}
+          </div>
+        </>
       )}
 
       {state.kind === 'ready' && state.result.total > 0 && (

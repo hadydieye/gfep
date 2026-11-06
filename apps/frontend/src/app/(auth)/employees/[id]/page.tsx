@@ -1,15 +1,17 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Pencil } from 'lucide-react';
+import { RelatedDocuments } from '@/components/documents/related-documents';
+import { EmployeeHistory } from '@/components/employees/employee-history';
 import { EmployeeStatusActions } from '@/components/employees/employee-status-actions';
 import { StatusBadge, formatDate } from '@/components/employees/status-badge';
 import { ApiErrorState } from '@/components/states/states';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { apiGet } from '@/lib/api/server';
-import type { Employee } from '@/lib/api/types';
+import type { AuditLogItem, Employee, Paginated, PaginatedDocuments } from '@/lib/api/types';
 import { canChangeEmployeeStatus, canWriteEmployee } from '@/lib/auth/scope';
-import { getSession } from '@/lib/auth/session';
+import { getSession, hasPermission } from '@/lib/auth/session';
 
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -30,6 +32,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const fullName = `${employee.firstName} ${employee.lastName}`;
   const canWrite = canWriteEmployee(user, employee.departmentId);
   const canChangeStatus = canChangeEmployeeStatus(user, employee);
+  // Sections conditionnées par les permissions (N11) ; le serveur applique M9 et 403
+  const canReadDocuments = hasPermission(user, 'documents', 'read');
+  const canReadAudit = hasPermission(user, 'audit', 'read');
+  const [documents, history] = await Promise.all([
+    canReadDocuments ? apiGet<PaginatedDocuments>(`/documents?ownerId=${employee.id}&limit=5`) : null,
+    canReadAudit
+      ? apiGet<Paginated<AuditLogItem>>(`/audit/logs?resourceType=Employee&resourceId=${employee.id}&action=employee.&limit=10`)
+      : null,
+  ]);
 
   return (
     <div>
@@ -78,6 +89,15 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           </InfoRow>
           <InfoRow label="Date d'embauche">{formatDate(employee.hireDate)}</InfoRow>
         </InfoSection>
+        {documents && (
+          <RelatedDocuments
+            title="Documents liés"
+            result={documents}
+            moreHref={`/documents?ownerId=${employee.id}`}
+            emptyMessage="Aucun document visible dont cet employé est propriétaire."
+          />
+        )}
+        {history && <EmployeeHistory result={history} />}
       </div>
     </div>
   );
@@ -85,7 +105,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
 
 function InfoSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[8px] border border-border bg-background-surface p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+    <section className="rounded-[8px] border border-border bg-background-surface p-6 shadow-card">
       <h2 className="mb-4 text-base font-semibold text-foreground-primary">{title}</h2>
       <dl className="flex flex-col gap-3">{children}</dl>
     </section>

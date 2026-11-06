@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { inclusiveDateRange } from '../common/date-range.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { buildOrderBy } from '../common/sorting.js';
+import { AUDIT_DEFAULT_ORDER, AUDIT_LOG_SORTS, AUDIT_SORT_TIEBREAKER, AUTH_EVENT_SORTS, SECURITY_EVENT_SORTS } from './audit-sorting.js';
 import type { AuditLogDto, AuthEventDto, Paginated, SecurityEventDto } from './dto/audit-response.dto.js';
 import { ListAuditLogsQueryDto, ListAuthEventsQueryDto, ListSecurityEventsQueryDto } from './dto/audit-queries.dto.js';
 
@@ -26,7 +28,7 @@ export class AuditReadService {
       this.prisma.auditLog.findMany({
         where,
         include: { actor: ACTOR },
-        orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
+        orderBy: buildOrderBy(query, AUDIT_LOG_SORTS, AUDIT_SORT_TIEBREAKER, AUDIT_DEFAULT_ORDER),
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -45,7 +47,7 @@ export class AuditReadService {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.securityEvent.findMany({
         where,
-        orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
+        orderBy: buildOrderBy(query, SECURITY_EVENT_SORTS, AUDIT_SORT_TIEBREAKER, AUDIT_DEFAULT_ORDER),
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -66,7 +68,7 @@ export class AuditReadService {
       this.prisma.authEvent.findMany({
         where,
         include: { user: ACTOR },
-        orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
+        orderBy: buildOrderBy(query, AUTH_EVENT_SORTS, AUDIT_SORT_TIEBREAKER, AUDIT_DEFAULT_ORDER),
         skip: (page - 1) * limit,
         take: limit,
       }),

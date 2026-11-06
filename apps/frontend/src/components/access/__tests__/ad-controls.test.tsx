@@ -90,7 +90,8 @@ describe('/access/ad-mappings (M22)', () => {
 
   it('IT_ADMINISTRATOR : rôle Super Admin non sélectionnable, mapping Super Admin non supprimable', async () => {
     setup(false);
-    await screen.findByText('cn=GFEP-SuperAdmins,ou=Informatique,dc=gnpaytrust,dc=local');
+    // Tableau (desktop) et cartes (mobile) sont rendus tous deux sous jsdom
+    await screen.findAllByText('cn=GFEP-SuperAdmins,ou=Informatique,dc=gnpaytrust,dc=local');
     await waitFor(() => expect(screen.getByRole('option', { name: 'Super Admin' })).toBeDisabled());
     const rows = screen.getAllByRole('row');
     const superAdminRow = rows.find((r) => within(r).queryByText(/GFEP-SuperAdmins/))!;
@@ -101,14 +102,15 @@ describe('/access/ad-mappings (M22)', () => {
 
   it('SUPER_ADMIN : tout est gérable', async () => {
     setup(true);
-    await screen.findByText('cn=GFEP-SuperAdmins,ou=Informatique,dc=gnpaytrust,dc=local');
+    // Tableau (desktop) et cartes (mobile) sont rendus tous deux sous jsdom
+    await screen.findAllByText('cn=GFEP-SuperAdmins,ou=Informatique,dc=gnpaytrust,dc=local');
     await waitFor(() => expect(screen.getByRole('option', { name: 'Super Admin' })).toBeEnabled());
-    expect(screen.getAllByRole('button', { name: /Supprimer/ })).toHaveLength(2);
+    expect(within(screen.getByRole('table')).getAllByRole('button', { name: /Supprimer/ })).toHaveLength(2);
   });
 
   it('DN invalide : message sous le champ, aucun appel', async () => {
     setup(true);
-    await screen.findByText(/GFEP-Employes/);
+    await screen.findAllByText(/GFEP-Employes/);
     await userEvent.type(screen.getByLabelText('DN du groupe'), 'pas un DN');
     await userEvent.selectOptions(screen.getByLabelText('Rôle'), 'r-emp');
     await userEvent.click(screen.getByRole('button', { name: /Ajouter/ }));

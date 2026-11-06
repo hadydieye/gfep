@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
@@ -9,13 +9,27 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { SortSelect, SortableHead } from '@/components/ui/sortable-head';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { apiFetch } from '@/lib/api/client';
+import { applySort, useSort } from '@/lib/use-sort';
 import type { Department, InvoiceStatus, PaginatedInvoices } from '@/lib/api/types';
 import { INVOICE_STATUS, InvoiceStatusBadge } from './finance-badges';
+import { ExportButton } from './export-button';
 import { MoneyAmount } from './money-amount';
 
 const PAGE_SIZES = [10, 25, 50, 100];
+
+// Colonnes triables côté serveur (N6)
+const SORT_COLUMNS = [
+  { key: 'invoiceNumber', label: 'Numéro' },
+  { key: 'clientName', label: 'Client' },
+  { key: 'department', label: 'Département' },
+  { key: 'dueDate', label: 'Échéance' },
+  { key: 'amount', label: 'Montant' },
+  { key: 'status', label: 'Statut' },
+] as const;
+const SORT_KEYS = SORT_COLUMNS.map((column) => column.key);
 const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR');
 
 type ListState =
@@ -35,6 +49,9 @@ export function InvoicesList() {
   const [limit, setLimit] = useState(25);
   const [reload, setReload] = useState(0);
   const [state, setState] = useState<ListState>({ kind: 'loading' });
+  const resetPage = useCallback(() => setPage(1), []);
+  const sorting = useSort(SORT_KEYS, resetPage);
+  const { ready: sortReady, sort, order } = sorting;
 
   useEffect(() => {
     void apiFetch<Department[]>('/departments').then((result) => {
@@ -43,10 +60,12 @@ export function InvoicesList() {
   }, []);
 
   useEffect(() => {
+    if (!sortReady) return;
     let active = true;
     const timer = window.setTimeout(async () => {
       setState({ kind: 'loading' });
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      applySort(params, { sort, order });
       if (search.trim()) params.set('search', search.trim());
       if (status) params.set('status', status);
       if (departmentId) params.set('departmentId', departmentId);
@@ -64,7 +83,7 @@ export function InvoicesList() {
       active = false;
       window.clearTimeout(timer);
     };
-  }, [page, limit, search, status, departmentId, dueFrom, dueTo, reload, router]);
+  }, [page, limit, search, status, departmentId, dueFrom, dueTo, reload, router, sortReady, sort, order]);
 
   const changeFilter = <Value,>(setter: (value: Value) => void, value: Value) => {
     setter(value);
@@ -74,12 +93,24 @@ export function InvoicesList() {
     setState({ kind: 'loading' });
     setReload((value) => value + 1);
   };
+  // Filtres et tri courants, sans pagination, pour l'export CSV (N5)
+  const exportQuery = new URLSearchParams();
+  if (search.trim()) exportQuery.set('search', search.trim());
+  if (status) exportQuery.set('status', status);
+  if (departmentId) exportQuery.set('departmentId', departmentId);
+  if (dueFrom) exportQuery.set('dueFrom', dueFrom);
+  if (dueTo) exportQuery.set('dueTo', dueTo);
+  applySort(exportQuery, { sort, order });
+
   const totalPages = state.kind === 'ready' ? Math.max(1, Math.ceil(state.result.total / limit)) : 1;
   const open = (id: string) => router.push(`/finance/invoices/${id}`);
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-2xl font-semibold text-foreground-primary">Factures</h1>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold text-foreground-primary">Factures</h1>
+        <ExportButton path="/invoices/export" query={exportQuery} />
+      </div>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <div className="relative">
@@ -100,6 +131,7 @@ export function InvoicesList() {
         </Select>
         <Input label="Échéance du" type="date" value={dueFrom} max={dueTo || undefined} onChange={(event) => changeFilter(setDueFrom, event.target.value)} />
         <Input label="Échéance au" type="date" value={dueTo} min={dueFrom || undefined} onChange={(event) => changeFilter(setDueTo, event.target.value)} />
+        <SortSelect className="md:hidden" options={SORT_COLUMNS} sort={sort} order={order} onSelect={sorting.setSort} />
       </div>
 
       {state.kind === 'error' ? (
@@ -112,12 +144,12 @@ export function InvoicesList() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Numéro</TableHead>
-                  <TableHead>Client</TableHead>
-                  <TableHead>Département</TableHead>
-                  <TableHead>Échéance</TableHead>
-                  <TableHead className="text-right">Montant</TableHead>
-                  <TableHead>Statut</TableHead>
+                  <SortableHead label="Numéro" sortKey="invoiceNumber" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Client" sortKey="clientName" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Département" sortKey="department" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Échéance" sortKey="dueDate" sort={sort} order={order} onSort={sorting.toggle} />
+                  <SortableHead label="Montant" sortKey="amount" sort={sort} order={order} onSort={sorting.toggle} className="text-right" />
+                  <SortableHead label="Statut" sortKey="status" sort={sort} order={order} onSort={sorting.toggle} />
                 </TableRow>
               </TableHeader>
               <TableBody>

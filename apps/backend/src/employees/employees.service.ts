@@ -11,6 +11,8 @@ import { AuditService } from '../audit/audit.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { buildOrderBy } from '../common/sorting.js';
+import { EMPLOYEE_DEFAULT_ORDER, EMPLOYEE_SORTS, EMPLOYEE_SORT_TIEBREAKER } from './employee-sorting.js';
 import { writeScopeDepartmentId } from '../rbac/roles.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { EmployeeResponseDto, PaginatedEmployeesDto } from './dto/employee-response.dto.js';
@@ -58,7 +60,7 @@ export class EmployeesService {
       this.prisma.employee.findMany({
         where,
         include: EMPLOYEE_INCLUDE,
-        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        orderBy: buildOrderBy(query, EMPLOYEE_SORTS, EMPLOYEE_SORT_TIEBREAKER, EMPLOYEE_DEFAULT_ORDER),
         skip: (page - 1) * limit,
         take: limit,
       }),
