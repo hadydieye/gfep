@@ -42,6 +42,22 @@ export const FINANCE_WRITE_ROLES = [SUPER_ADMIN, ACCOUNTANT] as const;
 // Accès : SA et ITA (rôles en lecture seule pour l'ITA, M18)
 export const ACCESS_ROLES = [SUPER_ADMIN, IT_ADMINISTRATOR] as const;
 
+// Libellés français des rôles (notifications), alignés sur l'interface
+export const ROLE_LABELS: Record<string, string> = {
+  [SUPER_ADMIN]: 'Super Admin',
+  [IT_ADMINISTRATOR]: 'Administrateur IT',
+  [IT_TECHNICIAN]: 'Technicien IT',
+  [HR_MANAGER]: 'Responsable RH',
+  [ACCOUNTANT]: 'Comptable',
+  [DEPARTMENT_MANAGER]: 'Responsable de département',
+  [EMPLOYEE]: 'Employé',
+  [AUDITOR]: 'Auditeur',
+};
+
+export function roleLabel(name: string): string {
+  return ROLE_LABELS[name] ?? name;
+}
+
 // Ordre de priorité du rôle principal (I6) : il détermine le dashboard affiché
 const ROLE_PRIORITY = [
   SUPER_ADMIN,

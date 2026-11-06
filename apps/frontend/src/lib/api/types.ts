@@ -19,6 +19,23 @@ export type RoleName =
   | 'AUDITOR';
 
 export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'LOCKED';
+export type NotificationType = 'INFO' | 'WARNING' | 'SECURITY' | 'DOCUMENT_SHARED' | 'ROLE_CHANGED';
+
+export interface NotificationItem {
+  id: string;
+  type: NotificationType;
+  title: string;
+  message: string;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface PaginatedNotifications {
+  data: NotificationItem[];
+  total: number;
+  page: number;
+  limit: number;
+}
 export type AuthProvider = 'LOCAL' | 'ACTIVE_DIRECTORY';
 
 export interface AuthUser {
@@ -73,6 +90,7 @@ export interface DashboardData {
   recentAccounts?: { created: DashboardAccount[]; suspended: DashboardAccount[] };
   headcountByDepartment?: Array<{ code: string; name: string; count: number }>;
   recentHires?: Array<{ id: string; firstName: string; lastName: string; department: string; hireDate: string }>;
+  recentNotifications?: NotificationItem[];
 }
 
 export interface DashboardAccount {

@@ -1,9 +1,11 @@
 import { randomBytes } from 'crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthEventType, AuthProvider, UserStatus } from '@prisma/client';
+import { AuthEventType, AuthProvider, NotificationType, Prisma, UserStatus } from '@prisma/client';
 import * as argon2 from 'argon2';
 import type { CookieOptions, Request, Response } from 'express';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { IT_ADMINISTRATOR, SUPER_ADMIN } from '../rbac/roles.js';
 import {
   AuthenticatedUser,
   USER_AUTH_INCLUDE,
@@ -24,7 +26,10 @@ export class AuthService {
   // Hash factice vérifié quand l'utilisateur n'existe pas, pour un temps de réponse homogène
   private readonly dummyHash = argon2.hash(randomBytes(16).toString('hex'));
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async login(dto: LoginDto, req: Request, res: Response): Promise<AuthResponseDto> {
     const sourceIp = req.ip ?? 'unknown';
@@ -63,22 +68,38 @@ export class AuthService {
     }
 
     const sessionToken = randomBytes(48).toString('hex');
-    await this.prisma.$transaction([
-      this.prisma.user.update({
+    const userAgent = req.headers['user-agent'] ?? 'unknown';
+    await this.prisma.$transaction(async (tx) => {
+      // Nouvel appareil (M19) : couple (user-agent, IP) absent des sessions antérieures ;
+      // la toute première connexion, sans session antérieure, ne déclenche pas d'alerte
+      const [priorSessions, sameDevice] = await Promise.all([
+        tx.session.count({ where: { userId: user.id } }),
+        tx.session.count({ where: { userId: user.id, userAgent, ipAddress: sourceIp } }),
+      ]);
+      await tx.user.update({
         where: { id: user.id },
         data: { failedLoginCount: 0, lastLoginAt: new Date() },
-      }),
-      this.prisma.session.create({
+      });
+      await tx.session.create({
         data: {
           userId: user.id,
           sessionTokenHash: hashSessionToken(sessionToken),
           ipAddress: sourceIp,
-          userAgent: req.headers['user-agent'] ?? 'unknown',
+          userAgent,
           expiresAt: new Date(Date.now() + SESSION_TTL_MS),
         },
-      }),
-      this.authEvent(user.id, AuthEventType.LOGIN_SUCCESS, sourceIp),
-    ]);
+      });
+      await this.authEvent(user.id, AuthEventType.LOGIN_SUCCESS, sourceIp, tx);
+      if (priorSessions > 0 && sameDevice === 0) {
+        await this.notifications.notify(tx, [user.id], {
+          type: NotificationType.SECURITY,
+          title: 'Connexion depuis un nouvel appareil',
+          message:
+            `Une connexion à votre compte a eu lieu depuis un appareil ou une adresse inconnus (adresse IP ${sourceIp}). ` +
+            "Si ce n'est pas vous, prévenez l'administrateur informatique.",
+        });
+      }
+    });
 
     res.cookie(sessionCookieName(), sessionToken, {
       ...this.cookieOptions(),
@@ -117,17 +138,38 @@ export class AuthService {
     await this.authEvent(userId, AuthEventType.LOGIN_FAILED, sourceIp);
 
     // I14 s'applique à tous les comptes, y compris le dernier SUPER_ADMIN actif (M17) :
-    // le brute force reste démontrable. Points d'appel prévus pour ce verrouillage :
-    // notification WARNING aux IT_ADMINISTRATOR actifs (étape 2.5) et SecurityEvent
-    // account_locked, de sévérité HIGH pour un SUPER_ADMIN (étape 2.6).
+    // le brute force reste démontrable. Chaque verrouillage alerte les IT_ADMINISTRATOR
+    // actifs (M19). Point d'appel prévu : SecurityEvent account_locked, HIGH pour un
+    // SUPER_ADMIN (étape 2.6).
     if (updated.failedLoginCount >= MAX_FAILED_LOGINS) {
-      await this.prisma.$transaction([
-        this.prisma.user.update({
+      await this.prisma.$transaction(async (tx) => {
+        const locked = await tx.user.update({
           where: { id: userId },
           data: { status: UserStatus.LOCKED },
-        }),
-        this.authEvent(userId, AuthEventType.ACCOUNT_LOCKED, sourceIp),
-      ]);
+          include: { userRoles: { include: { role: true } } },
+        });
+        await this.authEvent(userId, AuthEventType.ACCOUNT_LOCKED, sourceIp, tx);
+        const itAdministrators = await tx.user.findMany({
+          where: {
+            id: { not: userId },
+            status: UserStatus.ACTIVE,
+            userRoles: { some: { role: { name: IT_ADMINISTRATOR } } },
+          },
+          select: { id: true },
+        });
+        const superAdmin = locked.userRoles.some(({ role }) => role.name === SUPER_ADMIN);
+        await this.notifications.notify(
+          tx,
+          itAdministrators.map(({ id }) => id),
+          {
+            type: NotificationType.WARNING,
+            title: superAdmin ? 'Compte Super Admin verrouillé' : 'Compte verrouillé',
+            message:
+              `Le compte « ${locked.username} » a été verrouillé après ${MAX_FAILED_LOGINS} échecs de connexion consécutifs ` +
+              `(dernière tentative depuis ${sourceIp}). Le verrou expire après 15 minutes.`,
+          },
+        );
+      });
     }
   }
 
@@ -142,8 +184,13 @@ export class AuthService {
     return lastLock !== null && lastLock.timestamp.getTime() + LOCK_DURATION_MS <= Date.now();
   }
 
-  private authEvent(userId: string, eventType: AuthEventType, sourceIp: string) {
-    return this.prisma.authEvent.create({
+  private authEvent(
+    userId: string,
+    eventType: AuthEventType,
+    sourceIp: string,
+    client: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    return client.authEvent.create({
       data: { userId, eventType, sourceIp, authenticationMethod: AuthProvider.LOCAL },
     });
   }

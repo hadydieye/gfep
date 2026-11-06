@@ -6,7 +6,9 @@ import {
 } from '@nestjs/common';
 import {
   ConfidentialityLevel,
+  DocumentPermissionType,
   DocumentValidationStatus,
+  NotificationType,
   Prisma,
 } from '@prisma/client';
 import { AuditService } from '../audit/audit.service.js';
@@ -27,6 +29,7 @@ import type { UpdateValidationDto } from './dto/update-validation.dto.js';
 import { buildVisibilityWhere, canDelete, canShare, canValidate } from './document-access.js';
 import { deleteDocumentFile, readDocumentFile, writeDocumentFile } from './document-storage.js';
 import { detectAllowedFileType, previewableMimeType } from './file-signature.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const DOCUMENT_INCLUDE = {
@@ -50,11 +53,18 @@ type UserForPermission = {
   employeeIdentity: { employee: { firstName: string; lastName: string } } | null;
 };
 
+const SHARE_LABELS: Record<DocumentPermissionType, string> = {
+  READ: 'lecture',
+  WRITE: 'écriture',
+  DELETE: 'suppression',
+};
+
 @Injectable()
 export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(query: ListDocumentsQueryDto, user: AuthenticatedUser): Promise<PaginatedDocumentsDto> {
@@ -291,6 +301,12 @@ export class DocumentsService {
       await this.audit.record(tx, {
         ...auditEntry(user, 'document.share', id, sourceIp),
         newValues: { documentId: id, userId: dto.userId, permission: dto.permission },
+      });
+      // M19 : le bénéficiaire du partage est notifié, dans la transaction du partage
+      await this.notifications.notify(tx, [dto.userId], {
+        type: NotificationType.DOCUMENT_SHARED,
+        title: 'Document partagé avec vous',
+        message: `${user.username} vous a donné un accès en ${SHARE_LABELS[dto.permission]} au document « ${document.title} ».`,
       });
       const users = await this.permissionUsers([permission.userId]);
       return toPermissionResponse(permission, users.get(permission.userId));

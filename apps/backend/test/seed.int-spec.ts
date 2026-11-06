@@ -5,7 +5,7 @@ import * as argon2 from 'argon2';
 import { resetDatabase, runSeed, testPrisma } from './helpers.js';
 import { testStorageDir } from './setup/test-database.js';
 
-// Volumes après T2.4.1 (gfep-mvp2/DECISIONS.md M5, M24 : 23 permissions sur 30 à l'étape 2.4)
+// Volumes après T2.5.1 (gfep-mvp2/DECISIONS.md M5, M24 : 25 permissions sur 30 à l'étape 2.5)
 const EXPECTED_COUNTS = {
   departments: 6,
   positions: 18,
@@ -13,9 +13,9 @@ const EXPECTED_COUNTS = {
   users: 40,
   employeeIdentities: 40,
   roles: 8,
-  permissions: 23,
-  // SA 23, ITA 12, ITT 3, HR 10, ACC 11, DM 12, EMP 7, AUD 7
-  rolePermissions: 85,
+  permissions: 25,
+  // SA 25, ITA 14, ITT 5, HR 12, ACC 13, DM 14, EMP 9, AUD 9
+  rolePermissions: 101,
   userRoles: 40,
   documentCategories: 6,
   documents: 50,
@@ -24,8 +24,8 @@ const EXPECTED_COUNTS = {
   transactions: 100,
 };
 
-// Matrice exacte à l'étape 2.4 (design §2 limitée aux permissions existantes)
-const READ_BASE = ['dashboard:read', 'departments:read', 'employees:read'];
+// Matrice exacte à l'étape 2.5 (design §2 limitée aux permissions existantes)
+const READ_BASE = ['dashboard:read', 'departments:read', 'employees:read', 'notifications:read', 'notifications:update'];
 const DOCS = ['documents:delete', 'documents:read', 'documents:share', 'documents:write'];
 const ALL_PERMISSIONS = [
   'dashboard:read',
@@ -42,6 +42,8 @@ const ALL_PERMISSIONS = [
   'employees:write',
   'invoices:read',
   'invoices:status',
+  'notifications:read',
+  'notifications:update',
   'roles:read',
   'roles:write',
   'transactions:read',
@@ -145,7 +147,7 @@ describe('Seed complet (intégration)', () => {
       expect(matrix[role], role).toEqual([...keys].sort());
       expect(new Set(matrix[role]).size, `${role} sans doublon`).toBe(matrix[role].length);
     }
-    // Catalogue : 23 permissions, chacune détenue par au moins un rôle (SUPER_ADMIN les détient toutes)
+    // Catalogue : 25 permissions, chacune détenue par au moins un rôle (SUPER_ADMIN les détient toutes)
     const catalog = (await prisma.permission.findMany()).map((p) => `${p.resource}:${p.action}`).sort();
     expect(catalog).toEqual(ALL_PERMISSIONS);
     const orphans = await prisma.permission.count({ where: { rolePermissions: { none: {} } } });
@@ -163,10 +165,18 @@ describe('Seed complet (intégration)', () => {
         ),
       ].sort();
     // M15 : ni documents, ni finance, ni accès
-    expect(await resourcesOf('IT_TECHNICIAN')).toEqual(['dashboard', 'departments', 'employees']);
+    expect(await resourcesOf('IT_TECHNICIAN')).toEqual(['dashboard', 'departments', 'employees', 'notifications']);
     // Avant 2.6 : aucune permission d'audit ; ni finance, ni accès, ni écriture employé
-    expect(await resourcesOf('AUDITOR')).toEqual(['dashboard', 'departments', 'documents', 'employees']);
-    expect(await resourcesOf('ACCOUNTANT')).toEqual(['dashboard', 'departments', 'documents', 'employees', 'invoices', 'transactions']);
+    expect(await resourcesOf('AUDITOR')).toEqual(['dashboard', 'departments', 'documents', 'employees', 'notifications']);
+    expect(await resourcesOf('ACCOUNTANT')).toEqual([
+      'dashboard',
+      'departments',
+      'documents',
+      'employees',
+      'invoices',
+      'notifications',
+      'transactions',
+    ]);
     const writes = await prisma.rolePermission.count({
       where: {
         role: { name: { in: ['IT_TECHNICIAN', 'AUDITOR', 'ACCOUNTANT'] } },

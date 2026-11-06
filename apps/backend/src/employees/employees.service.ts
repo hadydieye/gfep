@@ -4,10 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EmploymentStatus, Prisma, UserStatus } from '@prisma/client';
+import { EmploymentStatus, NotificationType, Prisma, UserStatus } from '@prisma/client';
 import { STATE_CONFLICT_MESSAGE, assertMayManageAccount, runSerializable } from '../access/access-policy.js';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { AuditService } from '../audit/audit.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { writeScopeDepartmentId } from '../rbac/roles.js';
@@ -33,6 +34,7 @@ export class EmployeesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(query: PaginationQueryDto): Promise<PaginatedEmployeesDto> {
@@ -86,8 +88,8 @@ export class EmployeesService {
 
     for (let attempt = 1; ; attempt += 1) {
       try {
-        const employee = await this.prisma.$transaction(async (tx) =>
-          tx.employee.create({
+        const employee = await this.prisma.$transaction(async (tx) => {
+          const created = await tx.employee.create({
             data: {
               employeeNumber: await nextEmployeeNumber(tx),
               firstName: dto.firstName,
@@ -100,8 +102,23 @@ export class EmployeesService {
               hireDate: new Date(dto.hireDate),
             },
             include: EMPLOYEE_INCLUDE,
-          }),
-        );
+          });
+          // M19, AppFlow §6 : le responsable désigné est notifié, s'il a un compte
+          if (created.managerId) {
+            const manager = await tx.employeeIdentity.findUnique({
+              where: { employeeId: created.managerId },
+              select: { userId: true },
+            });
+            await this.notifications.notify(tx, manager ? [manager.userId] : [], {
+              type: NotificationType.INFO,
+              title: 'Nouvel employé dans votre équipe',
+              message:
+                `${created.firstName} ${created.lastName} (${created.employeeNumber}) rejoint votre équipe ` +
+                `comme « ${created.position.title} », département ${created.department.name}.`,
+            });
+          }
+          return created;
+        });
         return toResponse(employee);
       } catch (error) {
         if (uniqueTarget(error)?.includes('employeeNumber') && attempt < MAX_EMPLOYEE_NUMBER_ATTEMPTS) {

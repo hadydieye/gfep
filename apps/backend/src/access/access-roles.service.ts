@@ -1,9 +1,11 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { NotificationType } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { AuditService } from '../audit/audit.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { ALL_ROLES, SUPER_ADMIN } from '../rbac/roles.js';
+import { ALL_ROLES, SUPER_ADMIN, roleLabel } from '../rbac/roles.js';
 import type { PermissionDto, RoleDetailDto, RoleSummaryDto } from './dto/access-response.dto.js';
 import { UpdateRolePermissionsDto } from './dto/update-role-permissions.dto.js';
 
@@ -16,6 +18,7 @@ export class AccessRolesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(): Promise<RoleSummaryDto[]> {
@@ -89,7 +92,20 @@ export class AccessRolesService {
         oldValues: { name: role.name, permissions: keys(role.rolePermissions.map(({ permission }) => permission)) },
         newValues: { name: role.name, permissions: keys(wanted) },
       });
-      // Notification ROLE_CHANGED à chaque titulaire du rôle (M18, M19) : branchée à l'étape 2.5
+      // M18, M19 : chaque titulaire du rôle est notifié, dans la transaction de la modification
+      const holders = await tx.userRole.findMany({ where: { roleId: id }, select: { userId: true } });
+      await this.notifications.notify(
+        tx,
+        holders.map(({ userId }) => userId),
+        {
+          type: NotificationType.ROLE_CHANGED,
+          title: 'Permissions de votre rôle modifiées',
+          message:
+            `Les permissions du rôle « ${roleLabel(role.name)} » ont été modifiées ` +
+            `(${added.length} accordée${added.length === 1 ? '' : 's'}, ${removed.length} retirée${removed.length === 1 ? '' : 's'}). ` +
+            "Vos droits d'accès sont mis à jour immédiatement.",
+        },
+      );
     });
     return this.findOne(id, actor);
   }

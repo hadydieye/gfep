@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { AuditService } from '../audit/audit.service.js';
+import type { NotificationsService } from '../notifications/notifications.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import { EmployeesService, MAX_EMPLOYEE_NUMBER_ATTEMPTS } from './employees.service.js';
 
@@ -66,7 +67,8 @@ function fakePrisma(existingNumbers: string[], failures: unknown[]) {
     employee: { findUnique: vi.fn(async () => null) },
     $transaction: vi.fn(async (fn: (client: typeof tx) => unknown) => fn(tx)),
   };
-  return { service: new EmployeesService(prisma as unknown as PrismaService, new AuditService()), create };
+  const notifications = { notify: vi.fn() } as unknown as NotificationsService;
+  return { service: new EmployeesService(prisma as unknown as PrismaService, new AuditService(), notifications), create };
 }
 
 const year = new Date().getFullYear();

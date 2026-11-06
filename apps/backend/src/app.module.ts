@@ -14,6 +14,7 @@ import { DocumentsModule } from './documents/documents.module.js';
 import { EmployeesModule } from './employees/employees.module.js';
 import { FinanceModule } from './finance/finance.module.js';
 import { HealthModule } from './health/health.module.js';
+import { NotificationsModule } from './notifications/notifications.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { PermissionGuard } from './rbac/guards/permission.guard.js';
 import { RoleGuard } from './rbac/guards/roles.guard.js';
@@ -30,6 +31,7 @@ import { RbacModule } from './rbac/rbac.module.js';
     HealthModule,
     AuthModule,
     AuditModule,
+    NotificationsModule,
     RbacModule,
     DashboardModule,
     DocumentsModule,

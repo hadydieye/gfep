@@ -141,11 +141,18 @@ const ACCESS_PERMISSION_SEEDS = [
   { resource: 'users', action: 'unlock', description: 'Déverrouiller un compte verrouillé' },
 ] as const;
 
+// Étape 2.5 : notifications propres à chaque utilisateur, pour les 8 rôles (M19, M24)
+const NOTIFICATION_PERMISSION_SEEDS = [
+  { resource: 'notifications', action: 'read', description: 'Consulter ses notifications' },
+  { resource: 'notifications', action: 'update', description: 'Marquer ses notifications comme lues' },
+] as const;
+
 const PERMISSION_SEEDS = [
   ...MVP1_DATA.permissions,
   ...DOCUMENT_PERMISSION_SEEDS,
   ...FINANCE_PERMISSION_SEEDS,
   ...ACCESS_PERMISSION_SEEDS,
+  ...NOTIFICATION_PERMISSION_SEEDS,
 ];
 
 // Les 8 rôles (M5, M6, M15) : 3 rôles MVP 1, ACCOUNTANT (2.3), 4 rôles ajoutés en 2.4
@@ -158,12 +165,13 @@ const ROLE_SEEDS = [
   { name: 'AUDITOR', description: 'Auditeur — consultation, journaux d’audit à partir de l’étape 2.6' },
 ];
 
-const READ_BASE = ['dashboard:read', 'employees:read', 'departments:read'];
+// Lecture de base et notifications : communes aux 8 rôles
+const READ_BASE = ['dashboard:read', 'employees:read', 'departments:read', 'notifications:read', 'notifications:update'];
 const DOCUMENTS_NO_VALIDATE = DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate');
 
 /**
- * Matrice rôle → permissions à l'étape 2.4 (design §2, limitée aux permissions qui
- * existent : 23 sur 30, M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
+ * Matrice rôle → permissions à l'étape 2.5 (design §2, limitée aux permissions qui
+ * existent : 25 sur 30, M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
  */
 export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   SUPER_ADMIN: PERMISSION_SEEDS.map(({ resource, action }) => `${resource}:${action}`),
@@ -176,7 +184,7 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'users:suspend',
     'users:unlock',
   ],
-  // M15 : lecture seule employés et départements ; ni documents, ni finance, ni accès
+  // M15 : lecture seule employés et départements, ses notifications ; ni documents, ni finance, ni accès
   IT_TECHNICIAN: [...READ_BASE],
   HR_MANAGER: [...READ_BASE, 'employees:write', 'employees:status', 'departments:write', ...DOCUMENTS_NO_VALIDATE],
   ACCOUNTANT: [

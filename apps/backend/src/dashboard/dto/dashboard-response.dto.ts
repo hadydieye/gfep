@@ -29,6 +29,8 @@ export class DashboardResponseDto {
   };
   /** HR : répartition des employés actifs par département et dernières embauches */
   headcountByDepartment?: Array<{ code: string; name: string; count: number }>;
+  /** EMPLOYEE : 5 dernières notifications de l'utilisateur */
+  recentNotifications?: Array<{ id: string; type: string; title: string; message: string; readAt: string | null; createdAt: string }>;
   recentHires?: Array<{ id: string; firstName: string; lastName: string; department: string; hireDate: string }>;
   recentActivity: []; // vide en MVP 1, réservé pour MVP 2
   recentDocuments?: Array<{ id: string; title: string; createdAt: string }>;

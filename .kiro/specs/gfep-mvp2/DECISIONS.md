@@ -323,6 +323,31 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 - La toute première connexion d'un compte (aucune session antérieure) ne génère pas d'alerte « nouvel appareil ». **(dérivé — validé le 2026-11-05)**
 - Le compteur du badge de la topbar est rechargé à chaque navigation et après chaque action sur les notifications, sans temps réel. **(dérivé — validé le 2026-11-05)**
 
+### M32 — Mise en œuvre de l'étape 2.5 (2026-11-06)
+**Destinataires de l'alerte administrative (question du 2026-11-06) :** l'utilisateur confirme M19 : le `WARNING` de verrouillage va aux seuls IT_ADMINISTRATOR actifs, pas aux IT_TECHNICIAN.
+
+**Permissions (T2.5.1) :** `notifications:read` et `notifications:update` pour les 8 rôles : 25 permissions, 101 liaisons rôle-permission.
+
+**API (T2.5.2) :**
+- Liste paginée (25 par défaut, 100 au plus), filtre `status=read|unread`, tri `createdAt desc` ; compteur ; marquer comme lue (idempotent : la date de première lecture est conservée) ; tout marquer comme lu (`{ updated }`).
+- Toute requête est filtrée sur le destinataire dans la requête Prisma. La notification d'un autre utilisateur, y compris pour le SUPER_ADMIN, renvoie le même 404 qu'un identifiant inexistant : aucune fuite d'existence.
+- La spec ne prévoit ni suppression ni « marquer comme non lue » : ces opérations n'existent pas (une route `DELETE` renvoie 404).
+
+**Déclencheurs (T2.5.3), tous écrits dans la transaction de l'action :**
+- Nouvel appareil : alerte `SECURITY` si le couple (user-agent, IP) est absent des sessions antérieures et qu'au moins une session antérieure existe. La connexion locale passe en transaction interactive pour inclure la notification.
+- Partage de document : `DOCUMENT_SHARED` au bénéficiaire (titre du document, auteur, niveau d'accès). Un partage refusé (409) n'écrit aucune notification.
+- Rôles d'un compte : `ROLE_CHANGED` à l'utilisateur concerné (rôles attribués et retirés, libellés français) ; aucune notification si rien ne change.
+- Matrice d'un rôle : `ROLE_CHANGED` à chaque titulaire du rôle.
+- Verrouillage d'un compte : `WARNING` à chaque IT_ADMINISTRATOR actif, hors compte verrouillé ; titre « Compte Super Admin verrouillé » pour un SUPER_ADMIN (M17). Le `SecurityEvent` reste pour 2.6.
+- Création d'un employé avec responsable désigné : `INFO` au compte du responsable, s'il en a un (AppFlow §6).
+- La validation ou le rejet d'un document n'est pas un déclencheur de M19 : aucune notification.
+
+**Interface (T2.5.4) :**
+- Cloche de la topbar : lien vers `/notifications`, compteur réel (valeur initiale chargée par le layout, puis rechargée à chaque navigation et après chaque action via un événement navigateur), « 99+ » au-delà de 99.
+- `/notifications` : filtres Toutes / Non lues / Lues, icône Lucide par type (design §7.3), « Marquer comme lu », « Tout marquer comme lu », pagination par 20, états squelette, vide, erreur et 403.
+- Dashboard EMPLOYEE : carte « Mes notifications » (5 dernières).
+- Aucune entrée de sidebar : la spec ne prévoit que la cloche.
+
 ---
 
 ## 2.6 — Administration et audit

@@ -272,13 +272,13 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
 
 ## Étape 2.5 — Notifications
 
-- [ ] T2.5.1 — Seed : permissions `notifications:read` et `notifications:update` pour les 8 rôles
+- [x] T2.5.1 — Seed : permissions `notifications:read` et `notifications:update` pour les 8 rôles
   - _→ M24_
-- [ ] T2.5.2 — `NotificationsService.notify(tx, userIds, payload)` et module `notifications/`
+- [x] T2.5.2 — `NotificationsService.notify(tx, userIds, payload)` et module `notifications/`
   - Liste (propre à l'utilisateur, filtre lu ou non lu), compteur, marquer comme lu, tout marquer comme lu.
   - Autrui → 404.
   - _→ R22_
-- [ ] T2.5.3 — Brancher les déclencheurs de M19
+- [x] T2.5.3 — Brancher les déclencheurs de M19
   - Points d'appel :
     - connexion (nouvel appareil, sauf à la première connexion) ;
     - partage de document ;
@@ -287,20 +287,21 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
     - verrouillage de compte (`WARNING` aux ITA), notamment du dernier SUPER_ADMIN actif conformément à M17 ;
     - création d'un employé avec responsable.
   - _→ R23, M19_
-- [ ] T2.5.4 — Frontend
+- [x] T2.5.4 — Frontend
   - Badge réel dans la topbar.
   - Écran `/notifications` (filtres, icônes Lucide par type, tout marquer comme lu).
   - Carte « Mes notifications » (EMP).
   - _→ R24_
-- [ ] T2.5.5 — `test/notifications.int-spec.ts`
+- [x] T2.5.5 — `test/notifications.int-spec.ts`
   - 8 rôles.
   - Isolation.
   - Chaque déclencheur.
   - Pas d'alerte à la première connexion.
   - _→ T2, R22, R23_
-- [ ] T2.5.6 — Critère de passage 2.5
+- [x] T2.5.6 — Critère de passage 2.5
   - Test automatisé : un partage de document produit une notification visible par le destinataire (API).
-  - Validation manuelle utilisateur sur `/notifications` : ☐.
+  - Vérifié : `test/notifications.int-spec.ts`, et sur l'application compilée contre la base de dev (partage par `t.balde` → notification lue par `m.diallo` via l'API, badge de la topbar et carte « Mes notifications » rendus côté serveur ; partage retiré ensuite).
+  - Validation manuelle utilisateur sur `/notifications` : ☑ (confirmée par l'utilisateur le 2026-11-06).
   - `PROGRESS.md`.
   - _→ R25_
 

@@ -152,7 +152,7 @@ describe('Critère 2.4 : comportement distinct des 8 rôles (intégration)', () 
       'indicators.departmentName',
       'pendingDocuments',
     ]);
-    expect(signature(dashboards.employee)).toEqual(['recentDocuments']);
+    expect(signature(dashboards.employee)).toEqual(['recentDocuments', 'recentNotifications']);
     // AUDITOR : « Mes informations » côté interface jusqu'à l'étape 2.6, aucune donnée serveur
     expect(signature(dashboards.auditor)).toEqual([]);
 

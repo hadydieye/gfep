@@ -9,10 +9,12 @@ import {
   UserStatus,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ACCOUNTANT,
   DEPARTMENT_MANAGER,
+  EMPLOYEE,
   HR_MANAGER,
   IT_ADMINISTRATOR,
   IT_TECHNICIAN,
@@ -24,7 +26,10 @@ import { DashboardResponseDto } from './dto/dashboard-response.dto.js';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notifications: NotificationsService,
+  ) {}
 
   async getIndicators(user: AuthenticatedUser): Promise<DashboardResponseDto> {
     const role = primaryRole(user);
@@ -90,6 +95,8 @@ export class DashboardService {
       : undefined;
     const recentAccounts = [SUPER_ADMIN, IT_ADMINISTRATOR].includes(role) ? await this.recentAccounts() : undefined;
     const hr = role === HR_MANAGER ? await this.hrCards() : undefined;
+    // EMPLOYEE : « Mes notifications » (AppFlow §5, design §7.3), 5 dernières
+    const recentNotifications = role === EMPLOYEE ? await this.notifications.latest(user.id) : undefined;
 
     return {
       role,
@@ -101,6 +108,7 @@ export class DashboardService {
       ...(services ? { services } : {}),
       ...(recentAccounts ? { recentAccounts } : {}),
       ...hr,
+      ...(recentNotifications ? { recentNotifications } : {}),
       ...(recentDocuments ? { recentDocuments: recentDocuments.map(withIsoDate) } : {}),
       ...(pendingDocuments ? { pendingDocuments: pendingDocuments.map(withIsoDate) } : {}),
     };

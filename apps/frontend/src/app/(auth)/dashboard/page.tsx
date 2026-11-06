@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import {
   ArrowDownRight,
   ArrowUpRight,
+  Bell,
   Building2,
   FileClock,
   FileText,
@@ -22,6 +23,7 @@ import { HeadcountChart } from '@/components/dashboard/headcount-chart';
 import { ServiceStatusCard } from '@/components/dashboard/service-status-card';
 import { InvoiceStatusBadge, TRANSACTION_TYPE_LABEL, TransactionStatusBadge } from '@/components/finance/finance-badges';
 import { MoneyAmount } from '@/components/finance/money-amount';
+import { NotificationIcon, formatNotificationDate } from '@/components/notifications/notification-meta';
 import { ErrorState } from '@/components/states/states';
 import { apiGet } from '@/lib/api/server';
 import type { AuthUser, DashboardData } from '@/lib/api/types';
@@ -272,7 +274,38 @@ function EmployeeCards({ user, data }: { user: AuthUser; data: DashboardData }) 
         documents={data.recentDocuments ?? []}
         emptyMessage="Aucun document récent."
       />
+      <MyNotificationsCard notifications={data.recentNotifications ?? []} />
     </>
+  );
+}
+
+// « Mes notifications » (AppFlow §5, design §7.3) : 5 dernières notifications réelles
+function MyNotificationsCard({ notifications }: { notifications: NonNullable<DashboardData['recentNotifications']> }) {
+  return (
+    <DashboardCard label="Mes notifications" icon={Bell}>
+      {notifications.length === 0 ? (
+        <p className="text-sm text-foreground-secondary">Aucune notification.</p>
+      ) : (
+        <ul className="flex flex-col gap-2 text-sm">
+          {notifications.map((notification) => (
+            <li key={notification.id} className="flex items-start gap-2">
+              <NotificationIcon type={notification.type} className="mt-0.5 h-4 w-4 shrink-0 text-foreground-secondary" />
+              <span className="flex min-w-0 flex-col">
+                <span className={notification.readAt ? 'truncate text-foreground-primary' : 'truncate font-semibold text-foreground-primary'}>
+                  {notification.title}
+                </span>
+                <time className="text-xs text-foreground-secondary" dateTime={notification.createdAt}>
+                  {formatNotificationDate(notification.createdAt)}
+                </time>
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link href="/notifications" className="mt-1 text-sm font-medium text-link hover:underline">
+        Voir mes notifications
+      </Link>
+    </DashboardCard>
   );
 }
 

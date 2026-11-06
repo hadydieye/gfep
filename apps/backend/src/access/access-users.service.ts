@@ -1,10 +1,11 @@
 import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { AuthProvider, Prisma, UserStatus } from '@prisma/client';
+import { AuthProvider, NotificationType, Prisma, UserStatus } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { AuditService } from '../audit/audit.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SUPER_ADMIN } from '../rbac/roles.js';
+import { SUPER_ADMIN, roleLabel } from '../rbac/roles.js';
 import {
   STATE_CONFLICT_MESSAGE,
   actsOnSuperAdminWithoutBeingOne,
@@ -38,6 +39,7 @@ export class AccessUsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   async findAll(query: ListUsersQueryDto, actor: AuthenticatedUser): Promise<PaginatedAccountsDto> {
@@ -114,7 +116,16 @@ export class AccessUsersService {
       for (const role of removed) {
         await this.audit.record(tx, entry(actor, 'role.remove', id, sourceIp, { username: target.username, role: role.name }));
       }
-      // Notification ROLE_CHANGED à l'utilisateur concerné (M19) : branchée à l'étape 2.5
+      // M19 : l'utilisateur concerné est notifié, dans la transaction du changement
+      const changes = [
+        added.length > 0 ? `attribué : ${added.map((role) => roleLabel(role.name)).join(', ')}` : '',
+        removed.length > 0 ? `retiré : ${removed.map((role) => roleLabel(role.name)).join(', ')}` : '',
+      ].filter(Boolean);
+      await this.notifications.notify(tx, [id], {
+        type: NotificationType.ROLE_CHANGED,
+        title: 'Vos rôles ont changé',
+        message: `Rôle ${changes.join(' ; rôle ')}. Vos droits d'accès sont mis à jour immédiatement.`,
+      });
     });
     return this.findAccount(id, actor);
   }

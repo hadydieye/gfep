@@ -3,7 +3,7 @@
  * `npx prisma db seed`. Étend le jeu MVP 1 sans doublon : 6 départements,
  * 18 postes, 40 employés, 40 comptes locaux, 6 catégories, 50 documents avec
  * fichiers réels, 30 factures et 100 transactions rattachées à un département.
- * Rôles : les 8 rôles et la matrice de l'étape 2.4 (23 permissions, M24).
+ * Rôles : les 8 rôles et la matrice de l'étape 2.5 (25 permissions, M24).
  *
  * Idempotent. Réservé au développement : refuse NODE_ENV=production. Les mots
  * de passe de démonstration (SEED_PASSWORD_<ROLE>) ne sont jamais loggés.

@@ -1,22 +1,38 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Bell, Loader2, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/client';
 import type { AuthUser } from '@/lib/api/types';
+import { NOTIFICATIONS_CHANGED_EVENT } from '@/components/notifications/notification-meta';
 import { navItemsFor } from './nav-items';
 
-export function Topbar({ user }: { user: AuthUser }) {
+export function Topbar({ user, initialUnreadCount = 0 }: { user: AuthUser; initialUnreadCount?: number }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(initialUnreadCount);
   const displayName = user.employee
     ? `${user.employee.firstName} ${user.employee.lastName}`
     : user.username;
-  // Notifications : module MVP 2, aucun élément non lu pour l'instant
-  const unreadCount = 0;
+
+  // Compteur réel (M19) : rechargé à chaque navigation et après chaque action sur les notifications
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      const result = await apiFetch<{ count: number }>('/notifications/unread-count');
+      if (active && result.ok) setUnreadCount(result.data.count);
+    };
+    void load();
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
+    return () => {
+      active = false;
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, load);
+    };
+  }, [pathname]);
 
   const logout = async () => {
     setLoggingOut(true);
@@ -41,18 +57,22 @@ export function Topbar({ user }: { user: AuthUser }) {
         ))}
       </nav>
       <div className="ml-auto flex items-center gap-3">
-        <button
-          type="button"
-          aria-label={`Notifications (${unreadCount} non lues)`}
+        <Link
+          href="/notifications"
+          aria-label={`Notifications (${unreadCount} non lue${unreadCount > 1 ? 's' : ''})`}
+          aria-current={pathname === '/notifications' ? 'page' : undefined}
           className="relative rounded-md p-2 text-foreground-secondary hover:bg-background-main"
         >
           <Bell className="h-4 w-4" aria-hidden />
           {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-background-main-dark">
-              {unreadCount}
+            <span
+              data-testid="unread-badge"
+              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-semibold text-background-main-dark"
+            >
+              {unreadCount > 99 ? '99+' : unreadCount}
             </span>
           )}
-        </button>
+        </Link>
         <span className="hidden text-sm font-medium text-foreground-primary sm:inline">
           {displayName}
         </span>
