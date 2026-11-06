@@ -12,11 +12,27 @@ Les entrées marquées **(dérivé — validé le 2026-11-05)** ne viennent d'au
 - Le MVP 2 suit l'ordre exact de `06-Implementation-Plan.md` : 2.1 → 2.7, sans réordonnancement, fusion ni saut.
 - Une étape ne commence que si le critère de passage de la précédente est vérifié concrètement.
 - Aucune vulnérabilité volontaire, aucun `LAB_MODE` / `APP_MODE`, aucun vrai Active Directory.
-  - **Note — contradiction ouverte :** l'étape 3.3 de `06-Implementation-Plan.md` demande de mettre en place le flag `APP_MODE` (TRD §4). M1 l'exclut pour le MVP 2 uniquement. Le sort d'`APP_MODE` en 3.3 est **à trancher avant l'étape 3.3**, pas maintenant.
+  - **Note — contradiction résolue le 2026-11-06 :** voir M35 (`APP_MODE` hors du MVP 3, reporté à la phase vulnérabilités).
 - Les règles de `gfep-lot0-mvp1/DECISIONS.md` restent valables, en particulier :
   - I15 : interdiction par défaut ;
   - I17 : 400 génériques ;
   - I14 : verrouillage temporaire.
+
+### M35 — `APP_MODE` hors du MVP 3, reporté à la phase vulnérabilités (décision de l'utilisateur, 2026-11-06)
+**Contradiction résolue :** `06-Implementation-Plan.md` §3.3 (ligne 139) demande de « mettre en place le flag `APP_MODE` et la séparation de modules décrite en `02-TRD.md` section 4 », alors que M1 exclut `LAB_MODE` et `APP_MODE`.
+
+**Décision :**
+- Cette tâche de `06` §3.3 (ligne 139) est **explicitement exclue de l'étape 3.3 et de tout le MVP 3**.
+- Elle est **reportée à la phase vulnérabilités** (Enterprise Breach, hors des 6 documents), où elle sera construite avec la première vulnérabilité réelle, probablement fusionnée avec le mécanisme `LAB_MODE` décrit dans le cahier des charges technique (section 2).
+- **Raison :** construire ce flag maintenant créerait du code sans fonction réelle et irait à l'encontre de la séparation stricte entre l'application saine et les scénarios pédagogiques, posée depuis le début du projet.
+
+**Non concerné par cette exclusion :** le reste de l'étape 3.3 reste prévu normalement :
+- logs Pino et `requestId` (M20) ;
+- évaluation de `ldapts` (M26, M20) ;
+- rate limiting persistant ;
+- compteur `repeated_forbidden` persistant (M20) ;
+- revue OWASP Top 10 (critère de passage de 3.3) ;
+- en-têtes de sécurité (`helmet`).
 
 ### M2 — Migrations Prisma additives (Q1)
 - Les migrations sont autorisées au cas par cas, **jamais destructives** : ajout de colonne nullable ou avec défaut, ajout de valeur d'enum, ajout d'index ou de relation. Jamais de suppression ni de renommage.
