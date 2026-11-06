@@ -246,7 +246,7 @@ export class AdAuthService {
       });
       return { userId: user.id, sessionToken: token };
     });
-    this.auth.setSessionCookie(res, sessionToken);
+    await this.auth.setSessionCookie(res, sessionToken);
     return userId;
   }
 

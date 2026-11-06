@@ -18,7 +18,7 @@ export class AuthController {
   @HttpCode(200)
   @UseGuards(ThrottlerGuard)
   @Throttle({ login: { limit: 5, ttl: 900000 } })
-  @SkipThrottle({ 'login-ad': true })
+  @SkipThrottle({ 'login-ad': true, 'password-change': true })
   login(
     @Body() dto: LoginDto,
     @Req() req: Request,

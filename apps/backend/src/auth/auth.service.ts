@@ -22,6 +22,10 @@ export const MAX_FAILED_LOGINS = 5;
 export const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 heures (décision C4)
 export const LOCK_DURATION_MS = 15 * 60 * 1000; // verrouillage temporaire (décision I14)
 
+// Clé en base pour la durée de session (N16)
+const SESSION_TTL_HOURS_KEY = 'session.ttlHours';
+const SESSION_TTL_HOURS_DEFAULT = 8;
+
 @Injectable()
 export class AuthService {
   // Hash factice vérifié quand l'utilisateur n'existe pas, pour un temps de réponse homogène
@@ -32,6 +36,13 @@ export class AuthService {
     private readonly notifications: NotificationsService,
     private readonly securityEvents: SecurityEventsService,
   ) {}
+
+  /** Durée de session effective — lit system_settings directement pour éviter un cycle DI. */
+  private async sessionTtlMs(): Promise<number> {
+    const row = await this.prisma.systemSetting.findUnique({ where: { key: SESSION_TTL_HOURS_KEY } });
+    const hours = row && typeof row.value === 'number' ? row.value : SESSION_TTL_HOURS_DEFAULT;
+    return hours * 3600_000;
+  }
 
   async login(dto: LoginDto, req: Request, res: Response): Promise<AuthResponseDto> {
     const sourceIp = req.ip ?? 'unknown';
@@ -74,7 +85,7 @@ export class AuthService {
       await tx.user.update({ where: { id: user.id }, data: { failedLoginCount: 0 } });
       return this.openSession(tx, { userId: user.id, sourceIp, userAgent, method: AuthProvider.LOCAL });
     });
-    this.setSessionCookie(res, sessionToken);
+    await this.setSessionCookie(res, sessionToken);
     return this.toResponse(user);
   }
 
@@ -93,6 +104,7 @@ export class AuthService {
       tx.session.count({ where: { userId } }),
       tx.session.count({ where: { userId, userAgent, ipAddress: sourceIp } }),
     ]);
+    const ttlMs = await this.sessionTtlMs();
     await tx.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
     await tx.session.create({
       data: {
@@ -100,7 +112,7 @@ export class AuthService {
         sessionTokenHash: hashSessionToken(sessionToken),
         ipAddress: sourceIp,
         userAgent,
-        expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+        expiresAt: new Date(Date.now() + ttlMs),
       },
     });
     await tx.authEvent.create({
@@ -119,9 +131,10 @@ export class AuthService {
     return sessionToken;
   }
 
-  /** Cookie de session identique pour les flux local et AD. */
-  setSessionCookie(res: Response, sessionToken: string): void {
-    res.cookie(sessionCookieName(), sessionToken, { ...this.cookieOptions(), maxAge: SESSION_TTL_MS });
+  /** Cookie de session identique pour les flux local et AD. La durée reflète le paramètre système. */
+  async setSessionCookie(res: Response, sessionToken: string): Promise<void> {
+    const maxAge = await this.sessionTtlMs();
+    res.cookie(sessionCookieName(), sessionToken, { ...this.cookieOptions(), maxAge });
   }
 
   /** Profil renvoyé après connexion (sans hash ni jeton). */

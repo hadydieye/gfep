@@ -32,6 +32,8 @@ const AUDIT_FIELDS: Record<string, readonly string[]> = {
   User: ['username', 'role', 'roles', 'status', 'failedLoginCount', 'revokedSessions'],
   Role: ['name', 'permissions'],
   AdGroupRoleMapping: ['adGroupDn', 'role'],
+  // Paramètre système (N16) : clé et valeur (ancienne et nouvelle)
+  SystemSetting: ['key', 'sessionTtlHours'],
 };
 
 export interface AuditEntry {

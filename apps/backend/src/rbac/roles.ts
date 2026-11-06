@@ -43,6 +43,9 @@ export const FINANCE_WRITE_ROLES = [SUPER_ADMIN, ACCOUNTANT] as const;
 export const ACCESS_ROLES = [SUPER_ADMIN, IT_ADMINISTRATOR] as const;
 // Audit et historique de consultation : SA et AUD, pas l'ITA (M21, M24)
 export const AUDIT_ROLES = [SUPER_ADMIN, AUDITOR] as const;
+// Étape 3.2 : profil de l'utilisateur connecté (8 rôles) et paramètres système (SUPER_ADMIN) — N15, N16
+export const PROFILE_ROLES = ALL_ROLES;
+export const SETTINGS_ROLES = [SUPER_ADMIN] as const;
 
 // Libellés français des rôles (notifications), alignés sur l'interface
 export const ROLE_LABELS: Record<string, string> = {

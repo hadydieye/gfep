@@ -17,11 +17,14 @@ import { FinanceModule } from './finance/finance.module.js';
 import { HealthModule } from './health/health.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { ProfileModule } from './profile/profile.module.js';
 import { PermissionGuard } from './rbac/guards/permission.guard.js';
 import { RoleGuard } from './rbac/guards/roles.guard.js';
 import { RbacModule } from './rbac/rbac.module.js';
 import { ForbiddenAuditFilter } from './security/forbidden-audit.filter.js';
 import { SecurityModule } from './security/security.module.js';
+// SettingsModule est @Global() ET importé dans AuthModule pour que AuthService reçoive SettingsService
+import { SettingsModule } from './settings/settings.module.js';
 
 @Module({
   imports: [
@@ -31,6 +34,8 @@ import { SecurityModule } from './security/security.module.js';
       throttlers: [
         { name: 'login', ttl: 900000, limit: 5 },
         { name: 'login-ad', ttl: 900000, limit: 5 },
+        // Changement de mot de passe : 5 essais / 15 min par compte (N14)
+        { name: 'password-change', ttl: 900000, limit: 5 },
       ],
       errorMessage: 'Trop de tentatives. Réessayez dans quelques minutes.',
     }),
@@ -48,6 +53,8 @@ import { SecurityModule } from './security/security.module.js';
     FinanceModule,
     AccessModule,
     AdAuthModule,
+    ProfileModule,
+    SettingsModule,
   ],
   // Interdiction par défaut : session, puis rôle, puis permission, sur toutes les routes.
   // Exceptions explicites : @Public() et @AuthenticatedOnly().

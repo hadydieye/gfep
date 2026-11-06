@@ -48,3 +48,20 @@ describe('LoginForm : messages d’erreur', () => {
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/dashboard'));
   });
 });
+
+describe('Mot de passe oublié (étape 3.2, N13)', () => {
+  it('affiche en place un message identique pour tous, sans appel réseau', async () => {
+    const { ForgotPassword, FORGOT_PASSWORD_MESSAGE } = await import('../forgot-password');
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const user = userEvent.setup();
+    render(<ForgotPassword />);
+    const button = screen.getByRole('button', { name: 'Mot de passe oublié ?' });
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(screen.getByRole('status').textContent).toBe('');
+    await user.click(button);
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByRole('status').textContent).toBe(FORGOT_PASSWORD_MESSAGE);
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  });
+});

@@ -160,6 +160,17 @@ const AD_MAPPING_PERMISSION_SEEDS = [
   { resource: 'ad_mappings', action: 'write', description: 'Créer et supprimer des mappings groupe AD → rôle' },
 ] as const;
 
+// Étape 3.2 : profil de l'utilisateur connecté (8 rôles) et paramètres système (SUPER_ADMIN) — N15, N16, N29
+const PROFILE_PERMISSION_SEEDS = [
+  { resource: 'profile', action: 'read', description: 'Consulter son propre profil' },
+  { resource: 'profile', action: 'update', description: 'Changer son propre mot de passe' },
+] as const;
+
+const SETTINGS_PERMISSION_SEEDS = [
+  { resource: 'settings', action: 'read', description: 'Consulter les paramètres de l’application' },
+  { resource: 'settings', action: 'write', description: 'Modifier les paramètres de l’application' },
+] as const;
+
 const PERMISSION_SEEDS = [
   ...MVP1_DATA.permissions,
   ...DOCUMENT_PERMISSION_SEEDS,
@@ -168,6 +179,8 @@ const PERMISSION_SEEDS = [
   ...NOTIFICATION_PERMISSION_SEEDS,
   ...AUDIT_PERMISSION_SEEDS,
   ...AD_MAPPING_PERMISSION_SEEDS,
+  ...PROFILE_PERMISSION_SEEDS,
+  ...SETTINGS_PERMISSION_SEEDS,
 ];
 
 // Les 8 rôles (M5, M6, M15) : 3 rôles MVP 1, ACCOUNTANT (2.3), 4 rôles ajoutés en 2.4
@@ -180,12 +193,21 @@ const ROLE_SEEDS = [
   { name: 'AUDITOR', description: 'Auditeur — consultation, journaux d’audit à partir de l’étape 2.6' },
 ];
 
-// Lecture de base et notifications : communes aux 8 rôles
-const READ_BASE = ['dashboard:read', 'employees:read', 'departments:read', 'notifications:read', 'notifications:update'];
+// Lecture de base, notifications et profil : communs aux 8 rôles
+const READ_BASE = [
+  'dashboard:read',
+  'employees:read',
+  'departments:read',
+  'notifications:read',
+  'notifications:update',
+  'profile:read',
+  'profile:update',
+];
 const DOCUMENTS_NO_VALIDATE = DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate');
 
 /**
- * Matrice rôle → permissions finale (design §2) : 30 permissions (M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
+ * Matrice rôle → permissions (design §2) : 34 permissions (M24, N29). Le SUPER_ADMIN détient toujours toutes
+ * les permissions (M18), y compris `settings:*` qui lui sont réservées (N16).
  */
 export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   SUPER_ADMIN: PERMISSION_SEEDS.map(({ resource, action }) => `${resource}:${action}`),

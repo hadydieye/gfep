@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Bell, Loader2, LogOut, Menu } from 'lucide-react';
+import { Bell, Loader2, LogOut, Menu, UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api/client';
 import type { AuthUser } from '@/lib/api/types';
@@ -75,9 +75,15 @@ export function Topbar({
           )}
         </Link>
         <ThemeToggle />
-        <span className="hidden text-sm font-medium text-foreground-primary sm:inline">
+        <Link
+          href="/profile"
+          aria-label="Mon profil"
+          aria-current={pathname === '/profile' ? 'page' : undefined}
+          className="hidden items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-foreground-primary hover:bg-background-main sm:flex"
+        >
+          <UserRound className="h-4 w-4 text-foreground-secondary" aria-hidden />
           {displayName}
-        </span>
+        </Link>
         <Button variant="secondary" size="sm" onClick={logout} disabled={loggingOut}>
           {loggingOut ? (
             <Loader2 className="h-4 w-4 animate-spin" aria-hidden />

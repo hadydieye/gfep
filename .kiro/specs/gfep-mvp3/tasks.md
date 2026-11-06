@@ -96,27 +96,27 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
 
 ## Étape 3.2 — Profil utilisateur et paramètres
 
-- [ ] T3.2.0 — Vérifications de départ
+- [x] T3.2.0 — Vérifications de départ
   - _→ T6.1_
-- [ ] T3.2.1 — Lien « Mot de passe oublié » sur `/login` + test
+- [x] T3.2.1 — Lien « Mot de passe oublié » sur `/login` + test
   - _→ R12, N13_
-- [ ] T3.2.2 — Seed : `profile:read`, `profile:update` (8 rôles), `settings:read`, `settings:write` (SA) ; 34 permissions ; tests du seed
+- [x] T3.2.2 — Seed : `profile:read`, `profile:update` (8 rôles), `settings:read`, `settings:write` (SA) ; 34 permissions ; tests du seed
   - _→ N15, N16, N29_
-- [ ] T3.2.3 — `GET /profile` (module `profile/`) + tests d'accès et d'isolation
+- [x] T3.2.3 — `GET /profile` (module `profile/`) + tests d'accès et d'isolation
   - _→ R13.1, N15_
-- [ ] T3.2.4 — Politique de mot de passe (`password-policy.ts`, liste courante) + tests unitaires
+- [x] T3.2.4 — Politique de mot de passe (`password-policy.ts`, liste courante) + tests unitaires
   - _→ R14.2, N14_
-- [ ] T3.2.5 — `PATCH /profile/password` : throttler par compte, révocation des autres sessions, audit, notification `SECURITY` ; `test/profile.int-spec.ts`
+- [x] T3.2.5 — `PATCH /profile/password` : throttler par compte, révocation des autres sessions, audit, notification `SECURITY` ; `test/profile.int-spec.ts`
   - _→ R14, N14_
-- [ ] T3.2.6 — Migration `system_settings` (+ `05`, `schema.spec.ts`, `DECISIONS.md`)
+- [x] T3.2.6 — Migration `system_settings` (+ `05`, `schema.spec.ts`, `DECISIONS.md`)
   - _→ R15.1, N16, N30_
-- [ ] T3.2.7 — `SettingsService`, `GET`/`PATCH /admin/settings`, durée de session appliquée aux nouvelles sessions ; `test/settings.int-spec.ts`
+- [x] T3.2.7 — `SettingsService`, `GET`/`PATCH /admin/settings`, durée de session appliquée aux nouvelles sessions ; `test/settings.int-spec.ts`
   - _→ R15.2–R15.4, N16_
-- [ ] T3.2.8 — Écran `/profile` (informations, mot de passe, apparence) + lien topbar + tests
+- [x] T3.2.8 — Écran `/profile` (informations, mot de passe, apparence) + lien topbar + tests
   - _→ R13.2, R14, N8, N14_
-- [ ] T3.2.9 — Écran `/admin/settings` + entrée de navigation + redirection `/admin` + tests
+- [x] T3.2.9 — Écran `/admin/settings` + entrée de navigation + redirection `/admin` + tests
   - _→ R15.5, N16_
-- [ ] T3.2.10 — Critère de passage 3.2
+- [x] T3.2.10 — Critère de passage 3.2
   - Lint, build, test collés ; changement de mot de passe vérifié sur l'application compilée ; `/profile` et `/admin/settings` ajoutés au contrôle de T3.1.17 ; `PROGRESS.md`.
   - _→ R16_
 - [ ] T3.2.V — Validation manuelle utilisateur — **cochée par l'utilisateur uniquement**

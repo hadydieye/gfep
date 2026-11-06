@@ -40,6 +40,7 @@ model User {
   authEvents       AuthEvent[]
   notifications    Notification[]
   auditLogsAsActor AuditLog[]        @relation("AuditActor")
+  settingsUpdated  SystemSetting[]   @relation("SettingUpdater")
 
   @@index([email])
   @@map("users")
@@ -468,4 +469,21 @@ model ScenarioExecution {
   scenario LabScenario @relation(fields: [scenarioId], references: [id])
 
   @@map("scenario_executions")
+}
+
+// ============================================================
+// DOMAIN: SETTINGS
+// ============================================================
+
+// Paramètres système modifiables (N16) : clé primaire = nom du paramètre,
+// valeur JSON. Seul session.ttlHours est actuellement modifiable (valeur entière, 1–12).
+model SystemSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  updatedBy User? @relation("SettingUpdater", fields: [updatedById], references: [id])
+
+  @@map("system_settings")
 }

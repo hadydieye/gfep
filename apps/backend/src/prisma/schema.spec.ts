@@ -32,6 +32,8 @@ const EXPECTED_MODELS = [
   'SecurityEvent',
   'LabScenario',
   'ScenarioExecution',
+  // Migration system_settings (gfep-mvp3 N16, T3.2.6)
+  'SystemSetting',
 ];
 
 const EXPECTED_ENUMS = [
@@ -50,7 +52,7 @@ const EXPECTED_ENUMS = [
 ];
 
 describe('Prisma schema verification', () => {
-  it('should contain all 22 model declarations', () => {
+  it('should contain all 23 model declarations', () => {
     for (const modelName of EXPECTED_MODELS) {
       expect(schemaContent, `Model "${modelName}" not found in schema.prisma`).toMatch(
         new RegExp(`^model ${modelName}\\s*\\{`, 'm'),
@@ -58,9 +60,9 @@ describe('Prisma schema verification', () => {
     }
   });
 
-  it('should have exactly 22 model declarations', () => {
+  it('should have exactly 23 model declarations', () => {
     const modelMatches = schemaContent.match(/^model \w+\s*\{/gm);
-    expect(modelMatches?.length).toBe(22);
+    expect(modelMatches?.length).toBe(23);
   });
 
   it('should contain all 12 enum declarations', () => {

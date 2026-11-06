@@ -365,3 +365,43 @@ export interface DocumentHistoryEntry {
 export type ApiResult<T> =
   | { ok: true; data: T }
   | { ok: false; status: number; message?: string };
+
+// -------------------------------------------------------
+// Profil (T3.2.8) et Paramètres (T3.2.9)
+// -------------------------------------------------------
+
+export interface ProfileData {
+  account: {
+    id: string;
+    username: string;
+    email: string;
+    authProvider: AuthProvider;
+    roles: string[];
+    lastLoginAt: string | null;
+    createdAt: string;
+  };
+  employee: {
+    id: string;
+    employeeNumber: string;
+    firstName: string;
+    lastName: string;
+    professionalEmail: string;
+    phone: string | null;
+    department: { id: string; name: string };
+    position: string;
+    manager: { id: string; firstName: string; lastName: string } | null;
+    hireDate: string;
+  } | null;
+}
+
+export interface EffectiveConfiguration {
+  sessionTtlHours: number;
+  maxFailedLogins: number;
+  lockDurationMs: number;
+  loginRateLimit: { limit: number; windowMs: number };
+  passwordChangeRateLimit: { limit: number; windowMs: number };
+  maxUploadBytes: number;
+  allowedMimeTypes: string[];
+  adStatus: string;
+  appVersion: string;
+}

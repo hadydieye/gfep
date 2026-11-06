@@ -156,6 +156,13 @@ Aucun nouvel endpoint : `GET /dashboard` enrichit la réponse du rôle SUPER_ADM
 - Permissions `settings:read` et `settings:write`, **SUPER_ADMIN uniquement** ; routes `GET /admin/settings` et `PATCH /admin/settings`.
 - Audit `setting.update` (TRD §7), avec l'ancienne et la nouvelle valeur.
 
+**Mise en œuvre (2026-11-06, T3.2.6) :**
+- Migration `20261106201420_system_settings` appliquée : `CREATE TABLE system_settings`, FK vers `users(id)` avec `ON DELETE SET NULL`. Aucun `DROP`.
+- `AuthService.openSession` et `setSessionCookie` lisent directement `prisma.systemSetting` (clé `session.ttlHours`) pour éviter un cycle DI (`AdAuthModule → AuthModule ← SettingsModule → AdAuthModule`).
+- `SettingsService` injecte `AdStatusService` avec `@Optional()` car `SettingsModule` n'importe pas `AdAuthModule`.
+- `05-Backend-Schema.md` §2 et §3 mis à jour (domaine Settings, modèle `SystemSetting`).
+- `src/prisma/schema.spec.ts` mis à jour : 23 modèles (était 22).
+
 ---
 
 ## 3.3 — Durcissement sécurité

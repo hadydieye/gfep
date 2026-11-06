@@ -16,7 +16,7 @@ export class AdAuthController {
   @Public()
   @HttpCode(200)
   @UseGuards(ThrottlerGuard)
-  @SkipThrottle({ login: true })
+  @SkipThrottle({ login: true, 'password-change': true })
   @Throttle({ 'login-ad': { limit: 5, ttl: 900000 } })
   login(
     @Body() dto: AdLoginDto,

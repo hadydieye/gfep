@@ -19,6 +19,7 @@ Ce document définit le schéma de base de données complet (PostgreSQL via Pris
 | Finance | Transactions et factures fictives |
 | Application | Notifications, événements d'authentification |
 | Security & Audit | Journaux d'audit, événements de sécurité |
+| Settings | Paramètres système modifiables (N16) |
 
 ## 3. Schéma Prisma complet
 
@@ -484,6 +485,23 @@ model ScenarioExecution {
   scenario LabScenario @relation(fields: [scenarioId], references: [id])
 
   @@map("scenario_executions")
+}
+
+// ============================================================
+// DOMAIN: SETTINGS
+// ============================================================
+
+// Paramètres système modifiables (N16) : clé primaire = nom du paramètre,
+// valeur JSON. Seul session.ttlHours est actuellement modifiable (entier 1-12).
+model SystemSetting {
+  key         String   @id
+  value       Json
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  updatedBy User? @relation("SettingUpdater", fields: [updatedById], references: [id])
+
+  @@map("system_settings")
 }
 ```
 

@@ -1,4 +1,4 @@
-import { Building2, FileText, LayoutDashboard, ScrollText, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { Building2, FileText, LayoutDashboard, ScrollText, Settings, ShieldCheck, Users, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 type Permissions = Array<{ resource: string; action: string }>;
@@ -49,6 +49,8 @@ const NAV_DEFINITIONS: Array<{
   },
   // Étape 2.6 : journaux d'audit (SUPER_ADMIN, AUDITOR)
   { href: '/admin/audit', label: 'Audit', icon: ScrollText, resource: 'audit' },
+  // Étape 3.2 : paramètres système (SUPER_ADMIN uniquement, N16)
+  { href: '/admin/settings', label: 'Paramètres', icon: Settings, resource: 'settings' },
 ];
 
 const canRead = (permissions: Permissions, resource: string) =>
