@@ -3,7 +3,7 @@
 
 Références :
 - exigences : `requirements.md` (R1–R34, T1–T5) ;
-- décisions : `DECISIONS.md` (M1–M26) et `gfep-lot0-mvp1/DECISIONS.md` (I1–I22).
+- décisions : `DECISIONS.md` (M1–M34) et `gfep-lot0-mvp1/DECISIONS.md` (I1–I22).
 
 L'architecture du MVP 1 est conservée :
 - Next.js, avec rewrites `/api/v1` ;

@@ -285,14 +285,14 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 
 **Statut d'un employé (T2.4.5, M16) :**
 - Même statut : 409. Les autres changements sont permis, y compris depuis `TERMINATED` ; l'interface ne propose « Réactiver » que pour un employé non actif.
-- **(dérivé — à valider)** Suspendre l'employé lié à un compte SUPER_ADMIN applique les garde-fous de M17 (non-SA → 403, dernier SA actif → 403). Sans cela, un HR_MANAGER suspendrait le compte de la Direction par sa fiche employé.
+- **(dérivé — validé le 2026-11-06)** Suspendre l'employé lié à un compte SUPER_ADMIN applique les garde-fous de M17 (non-SA → 403, dernier SA actif → 403). Sans cela, un HR_MANAGER suspendrait le compte de la Direction par sa fiche employé.
 - Audit `employee.status_change` : statut de l'employé, statut du compte et nombre de sessions révoquées. Un employé sans compte ne change que de statut.
 
 **Comptes (T2.4.8, T2.4.9, M17) :**
-- **(dérivé — à valider)** « Un IT_ADMINISTRATOR n'agit pas sur un SUPER_ADMIN » est généralisé à **tout compte non SUPER_ADMIN** : la matrice étant modifiable, un autre rôle pourrait recevoir `users:*`.
+- **(dérivé — validé le 2026-11-06)** « Un IT_ADMINISTRATOR n'agit pas sur un SUPER_ADMIN » est généralisé à **tout compte non SUPER_ADMIN** : la matrice étant modifiable, un autre rôle pourrait recevoir `users:*`.
 - Dernier SA actif : vérifié dans la transaction, en isolation SERIALIZABLE (un conflit renvoie 409). Comme l'auteur d'une action est forcément un compte actif et qu'agir sur soi-même est interdit, cette règle n'est pas atteignable seule par l'API tant que les règles précédentes s'appliquent ; elle reste en défense en profondeur, couverte par un test unitaire et par un test de suspensions croisées simultanées de deux SA (un seul aboutit).
 - Transitions de statut d'un compte : `ACTIVE` ou `LOCKED` → `SUSPENDED` (sessions révoquées) ; `SUSPENDED` → `ACTIVE` (compteur d'échecs à 0) ; `LOCKED` → `ACTIVE` uniquement par `/unlock` (sinon 409) ; même statut : 409.
-- **(dérivé — à valider)** Un compte garde au moins un rôle : `roleIds` vide → 400. Rôle inexistant → 400 « Rôle inexistant. ». Aucun changement → 200 sans audit.
+- **(dérivé — validé le 2026-11-06)** Un compte garde au moins un rôle : `roleIds` vide → 400. Rôle inexistant → 400 « Rôle inexistant. ». Aucun changement → 200 sans audit.
 - Audits : `role.assign` et `role.remove` (un par rôle), `user.suspend`, `user.reactivate`, `user.unlock`, `role.permissions_update`.
 - La liste des comptes expose des `capabilities` calculées avec les mêmes règles que le service : l'interface ne rend pas les actions interdites (design §6.3) ; le serveur reste seul juge.
 - Points d'appel prévus : notifications `ROLE_CHANGED` (2.5) ; au verrouillage d'un compte, alerte `WARNING` aux ITA et `SecurityEvent account_locked` (2.5, 2.6). Ils sont marqués dans le code, sans effet en 2.4.
@@ -393,8 +393,8 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 
 **Endpoints (T2.6.4) :**
 - `/audit/logs`, `/audit/security-events`, `/audit/auth-events` : GET uniquement, SA et AUD ; l'ITA reçoit 403 (M21).
-- **(dérivé — à valider)** Filtres ajoutés à ceux de design §8.3 : `actor` et `user` (recherche partielle sur l'identifiant de connexion), car l'AUDITOR n'a pas `users:read` pour choisir un `actorId` ; `action` terminée par un point filtre une famille (`document.`) ; `resourceId`.
-- **(dérivé — à valider)** `/documents/:id/history` applique la visibilité de M9 : le SUPER_ADMIN voit tout, l'AUDITOR seulement les documents qu'il peut consulter (sinon 404, sans fuite). Les consultations de documents confidentiels restent visibles dans `/admin/audit`.
+- **(dérivé — validé le 2026-11-06)** Filtres ajoutés à ceux de design §8.3 : `actor` et `user` (recherche partielle sur l'identifiant de connexion), car l'AUDITOR n'a pas `users:read` pour choisir un `actorId` ; `action` terminée par un point filtre une famille (`document.`) ; `resourceId`.
+- **(dérivé — validé le 2026-11-06)** `/documents/:id/history` applique la visibilité de M9 : le SUPER_ADMIN voit tout, l'AUDITOR seulement les documents qu'il peut consulter (sinon 404, sans fuite). Les consultations de documents confidentiels restent visibles dans `/admin/audit`.
 
 **Interface (T2.6.5, T2.6.6) :**
 - `/admin/audit` : onglets Journal d'activité, Événements de sécurité (si `security_events:read`) et Authentifications, filtres (période, utilisateur, action ou type, sévérité), pagination par 25, panneau de détail avant/après. `/admin` redirige vers `/admin/audit`. Entrée « Audit » (`ScrollText`) pour `audit:read`.
@@ -475,7 +475,7 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 - `ldapjs` étant un module CommonJS, seul son export par défaut est disponible sous Node natif : un import nommé faisait planter le backend compilé, sans que Vitest le révèle. `SearchEntry.objectName` est un objet DN en v3 : sa forme texte (`pojo.objectName`) est utilisée. Ces deux défauts ont été trouvés par les tests contre le LDAP Docker.
 - `AuthService.openSession` est partagé par les flux local et AD : session, `LOGIN_SUCCESS` (méthode `ACTIVE_DIRECTORY`), alerte « nouvel appareil ».
 - Un compte AD existant suspendu ou verrouillé est refusé (401, `LOGIN_FAILED`).
-- **(dérivé — à valider)** L'identifiant saisi est limité à `[A-Za-z0-9._-]` (400 sinon), en plus de l'échappement RFC 4515 du filtre.
+- **(dérivé — validé le 2026-11-06)** L'identifiant saisi est limité à `[A-Za-z0-9._-]` (400 sinon), en plus de l'échappement RFC 4515 du filtre.
 - Throttler nommé `login-ad` (5 / 15 min / IP), indépendant de celui de `/auth/login`.
 - « État des services » : LDAP Disponible, Indisponible ou Non configuré (bind du compte de service, 3 s, cache 30 s, M20).
 - Audit `ad_mapping.create` et `ad_mapping.delete` ; un mapping en double renvoie 409.
@@ -537,6 +537,8 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 | Avertissements à l'installation | `ldapjs` et ses 9 sous-paquets `@ldapjs/*` signalés « decomissioned » par npm ; 0 vulnérabilité connue (`npm audit`) |
 
 **Décision :** aucun défaut de fonctionnement ; seul l'abandon officiel du paquet, déjà connu, pose un risque de maintenance (aucun correctif de sécurité à venir). `ldapjs` est **conservé** conformément au TRD §8, derrière l'interface `LdapClientFactory` / `LdapConnection` (`ad-auth/ldap-client.ts`) : le reste du module n'importe jamais `ldapjs`. Alternative identifiée pour un remplacement ultérieur, sans changement du service : `ldapts` (9.2.0, maintenue, TypeScript natif). À trancher avec l'utilisateur ; marqué `TODO(AD-REVISION)`.
+
+**Confirmation de l'utilisateur (2026-11-06) :** `ldapjs` est conservé, derrière son interface remplaçable, **sans action immédiate**. L'évaluation de `ldapts` reste prévue à l'étape 3.3 (dette technique de M20), **sans caractère bloquant**.
 
 ### M27 — Mise en œuvre de l'étape 2.1 (2026-11-05)
 - **Aucune migration** à l'étape 2.1 : le schéma permet déjà le seed complet. `05-Backend-Schema.md` est inchangé.
