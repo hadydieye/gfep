@@ -44,6 +44,7 @@ const NAV_DEFINITIONS: Array<{
     children: [
       { href: '/access/users', label: 'Comptes', resource: 'users' },
       { href: '/access/roles', label: 'Rôles', resource: 'roles' },
+      { href: '/access/ad-mappings', label: 'Mappings AD', resource: 'ad_mappings' },
     ],
   },
   // Étape 2.6 : journaux d'audit (SUPER_ADMIN, AUDITOR)

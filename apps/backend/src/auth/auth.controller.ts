@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from '@nestjs/common';
-import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { SkipThrottle, Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import type { AuthenticatedUser } from './authenticated-user.js';
 import { AuthService } from './auth.service.js';
@@ -18,6 +18,7 @@ export class AuthController {
   @HttpCode(200)
   @UseGuards(ThrottlerGuard)
   @Throttle({ login: { limit: 5, ttl: 900000 } })
+  @SkipThrottle({ 'login-ad': true })
   login(
     @Body() dto: LoginDto,
     @Req() req: Request,

@@ -69,44 +69,64 @@ export class AuthService {
       throw new UnauthorizedException(GENERIC_AUTH_ERROR);
     }
 
-    const sessionToken = randomBytes(48).toString('hex');
     const userAgent = req.headers['user-agent'] ?? 'unknown';
-    await this.prisma.$transaction(async (tx) => {
-      // Nouvel appareil (M19) : couple (user-agent, IP) absent des sessions antérieures ;
-      // la toute première connexion, sans session antérieure, ne déclenche pas d'alerte
-      const [priorSessions, sameDevice] = await Promise.all([
-        tx.session.count({ where: { userId: user.id } }),
-        tx.session.count({ where: { userId: user.id, userAgent, ipAddress: sourceIp } }),
-      ]);
-      await tx.user.update({
-        where: { id: user.id },
-        data: { failedLoginCount: 0, lastLoginAt: new Date() },
-      });
-      await tx.session.create({
-        data: {
-          userId: user.id,
-          sessionTokenHash: hashSessionToken(sessionToken),
-          ipAddress: sourceIp,
-          userAgent,
-          expiresAt: new Date(Date.now() + SESSION_TTL_MS),
-        },
-      });
-      await this.authEvent(user.id, AuthEventType.LOGIN_SUCCESS, sourceIp, tx);
-      if (priorSessions > 0 && sameDevice === 0) {
-        await this.notifications.notify(tx, [user.id], {
-          type: NotificationType.SECURITY,
-          title: 'Connexion depuis un nouvel appareil',
-          message:
-            `Une connexion à votre compte a eu lieu depuis un appareil ou une adresse inconnus (adresse IP ${sourceIp}). ` +
-            "Si ce n'est pas vous, prévenez l'administrateur informatique.",
-        });
-      }
+    const sessionToken = await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: user.id }, data: { failedLoginCount: 0 } });
+      return this.openSession(tx, { userId: user.id, sourceIp, userAgent, method: AuthProvider.LOCAL });
     });
+    this.setSessionCookie(res, sessionToken);
+    return this.toResponse(user);
+  }
 
-    res.cookie(sessionCookieName(), sessionToken, {
-      ...this.cookieOptions(),
-      maxAge: SESSION_TTL_MS,
+  /**
+   * Ouvre une session, commune aux flux local et AD (R31.3, étape 8) : session, dernière
+   * connexion, AuthEvent LOGIN_SUCCESS, et alerte « nouvel appareil » (M19) si le couple
+   * (user-agent, IP) est absent des sessions antérieures. Renvoie le jeton (jamais stocké en clair).
+   */
+  async openSession(
+    tx: Prisma.TransactionClient,
+    input: { userId: string; sourceIp: string; userAgent: string; method: AuthProvider },
+  ): Promise<string> {
+    const { userId, sourceIp, userAgent, method } = input;
+    const sessionToken = randomBytes(48).toString('hex');
+    const [priorSessions, sameDevice] = await Promise.all([
+      tx.session.count({ where: { userId } }),
+      tx.session.count({ where: { userId, userAgent, ipAddress: sourceIp } }),
+    ]);
+    await tx.user.update({ where: { id: userId }, data: { lastLoginAt: new Date() } });
+    await tx.session.create({
+      data: {
+        userId,
+        sessionTokenHash: hashSessionToken(sessionToken),
+        ipAddress: sourceIp,
+        userAgent,
+        expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+      },
     });
+    await tx.authEvent.create({
+      data: { userId, eventType: AuthEventType.LOGIN_SUCCESS, sourceIp, authenticationMethod: method },
+    });
+    // La toute première connexion, sans session antérieure, ne déclenche pas d'alerte
+    if (priorSessions > 0 && sameDevice === 0) {
+      await this.notifications.notify(tx, [userId], {
+        type: NotificationType.SECURITY,
+        title: 'Connexion depuis un nouvel appareil',
+        message:
+          `Une connexion à votre compte a eu lieu depuis un appareil ou une adresse inconnus (adresse IP ${sourceIp}). ` +
+          "Si ce n'est pas vous, prévenez l'administrateur informatique.",
+      });
+    }
+    return sessionToken;
+  }
+
+  /** Cookie de session identique pour les flux local et AD. */
+  setSessionCookie(res: Response, sessionToken: string): void {
+    res.cookie(sessionCookieName(), sessionToken, { ...this.cookieOptions(), maxAge: SESSION_TTL_MS });
+  }
+
+  /** Profil renvoyé après connexion (sans hash ni jeton). */
+  async profile(userId: string): Promise<AuthResponseDto> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, include: USER_AUTH_INCLUDE });
     return this.toResponse(user);
   }
 

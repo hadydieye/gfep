@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
 import { AccessModule } from './access/access.module.js';
+import { AdAuthModule } from './ad-auth/ad-auth.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { SessionGuard } from './auth/session.guard.js';
@@ -26,7 +27,11 @@ import { SecurityModule } from './security/security.module.js';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot({
-      throttlers: [{ name: 'login', ttl: 900000, limit: 5 }],
+      // Un throttler par point d'entrée d'authentification : 5 tentatives / 15 min / IP (TRD §6)
+      throttlers: [
+        { name: 'login', ttl: 900000, limit: 5 },
+        { name: 'login-ad', ttl: 900000, limit: 5 },
+      ],
       errorMessage: 'Trop de tentatives. Réessayez dans quelques minutes.',
     }),
     PrismaModule,
@@ -42,6 +47,7 @@ import { SecurityModule } from './security/security.module.js';
     DepartmentsModule,
     FinanceModule,
     AccessModule,
+    AdAuthModule,
   ],
   // Interdiction par défaut : session, puis rôle, puis permission, sur toutes les routes.
   // Exceptions explicites : @Public() et @AuthenticatedOnly().
@@ -57,7 +63,7 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
       .apply(cookieParser(), SessionMiddleware)
-      .exclude({ path: 'auth/login', method: RequestMethod.POST })
+      .exclude({ path: 'auth/login', method: RequestMethod.POST }, { path: 'auth/login-ad', method: RequestMethod.POST })
       .forRoutes('{*path}');
   }
 }

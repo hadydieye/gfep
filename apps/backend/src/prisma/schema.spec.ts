@@ -95,6 +95,25 @@ describe('Prisma schema verification', () => {
     expect(body).toMatch(/^\s*invoices\s+Invoice\[\]/m);
   });
 
+  // Migration ad_auth_event_types (gfep-mvp2/DECISIONS.md M23) : un AuthEvent par étape du flux AD
+  it('enum AuthEventType includes the AD flow events', () => {
+    const body = schemaContent.match(/^enum AuthEventType\s*\{([\s\S]*?)^\}/m)?.[1] ?? '';
+    const values = body.split('\n').map((line) => line.trim()).filter(Boolean);
+    expect(values).toEqual([
+      'LOGIN_SUCCESS',
+      'LOGIN_FAILED',
+      'LOGOUT',
+      'ACCOUNT_LOCKED',
+      'AD_BIND_FAILED',
+      'AD_UNREACHABLE',
+      'AD_SERVICE_BIND_FAILED',
+      'AD_USER_NOT_FOUND',
+      'AD_NO_EMPLOYEE_MATCH',
+      'AD_NO_ROLE_MAPPING',
+      'AD_LOCAL_ACCOUNT_CONFLICT',
+    ]);
+  });
+
   it('should not contain a hardcoded postgresql:// connection string', () => {
     expect(schemaContent).not.toMatch(/postgresql:\/\//);
   });

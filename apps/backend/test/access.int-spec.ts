@@ -295,7 +295,7 @@ describe('Accès : rôles et comptes (intégration)', () => {
       const detail = await call('GET', `/access/roles/${roleIds.get('AUDITOR')}`, sessions.itAdmin);
       expect(detail.status).toBe(200);
       expect(detail.body.editable).toBe(false);
-      expect(detail.body.catalog).toHaveLength(28);
+      expect(detail.body.catalog).toHaveLength(30);
     });
 
     it('personne ne retire une permission d’un rôle qu’il détient (ajout possible)', async () => {
@@ -363,7 +363,7 @@ describe('Accès : rôles et comptes (intégration)', () => {
         'AUDITOR',
       ]);
       const superAdmin = response.body.find((r: { name: string }) => r.name === 'SUPER_ADMIN');
-      expect(superAdmin).toMatchObject({ userCount: 1, permissionCount: 28 });
+      expect(superAdmin).toMatchObject({ userCount: 1, permissionCount: 30 });
     });
   });
 });

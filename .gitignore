@@ -16,3 +16,6 @@ apps/backend/storage/
 # OS
 .DS_Store
 Thumbs.db
+
+# Certificats du LDAP de test (générés par infra/ldap-test/generate-certs.sh)
+infra/ldap-test/certs/

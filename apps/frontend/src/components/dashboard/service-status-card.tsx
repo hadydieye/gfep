@@ -10,9 +10,16 @@ const DATABASE = {
   DOWN: { label: 'Indisponible', variant: 'error' },
 } as const;
 
-/** État des services (M20) : base de données ; LDAP « Non configuré » jusqu'à l'étape 2.7. */
+const LDAP = {
+  UP: { label: 'Disponible', variant: 'success' },
+  DOWN: { label: 'Indisponible', variant: 'error' },
+  NOT_CONFIGURED: { label: 'Non configuré', variant: 'neutral' },
+} as const;
+
+/** État des services (M20) : base de données et annuaire LDAP (bind du compte de service, design §9.5). */
 export function ServiceStatusCard({ services }: { services: Services }) {
   const database = DATABASE[services.database];
+  const ldap = LDAP[services.ldap];
   return (
     <DashboardCard label="État des services" icon={Activity}>
       <ul className="flex flex-col gap-3 text-sm">
@@ -28,7 +35,7 @@ export function ServiceStatusCard({ services }: { services: Services }) {
             <Network className="h-4 w-4 text-foreground-secondary" aria-hidden />
             Annuaire LDAP
           </span>
-          <Badge variant="neutral">Non configuré</Badge>
+          <Badge variant={ldap.variant}>{ldap.label}</Badge>
         </li>
       </ul>
     </DashboardCard>

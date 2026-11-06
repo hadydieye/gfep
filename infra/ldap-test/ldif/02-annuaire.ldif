@@ -1,0 +1,128 @@
+# Annuaire de test GFEP (données fictives) : OU, compte de service, utilisateurs et groupes.
+# Mots de passe stockés en {SSHA} ; les valeurs en clair, de test uniquement, sont dans infra/ldap-test/README.md.
+
+dn: ou=Direction,dc=gnpaytrust,dc=local
+objectClass: organizationalUnit
+ou: Direction
+
+dn: ou=RH,dc=gnpaytrust,dc=local
+objectClass: organizationalUnit
+ou: RH
+
+dn: ou=Comptabilite,dc=gnpaytrust,dc=local
+objectClass: organizationalUnit
+ou: Comptabilite
+
+dn: ou=Informatique,dc=gnpaytrust,dc=local
+objectClass: organizationalUnit
+ou: Informatique
+
+dn: ou=Commercial,dc=gnpaytrust,dc=local
+objectClass: organizationalUnit
+ou: Commercial
+
+dn: ou=Audit,dc=gnpaytrust,dc=local
+objectClass: organizationalUnit
+ou: Audit
+
+dn: ou=ServiceAccounts,dc=gnpaytrust,dc=local
+objectClass: organizationalUnit
+ou: ServiceAccounts
+
+dn: cn=svc-ldapreader,ou=ServiceAccounts,dc=gnpaytrust,dc=local
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: svc-ldapreader
+description: Compte de service en lecture seule (GFEP)
+userPassword: {SSHA}kLo8NijcHy2aQwDlGrNciWDbdNRnZmVwU3ZjMQ==
+
+dn: uid=ad.fofana,ou=Comptabilite,dc=gnpaytrust,dc=local
+objectClass: inetOrgPerson
+uid: ad.fofana
+cn: Aminata Fofana
+givenName: Aminata
+sn: Fofana
+mail: ad.fofana@guineasf.com
+userPassword: {SSHA}6q9bbFqz1cBkBr58pZ+wE3HwTzdnZmVwQWRUMQ==
+
+dn: uid=ad.sylla,ou=Comptabilite,dc=gnpaytrust,dc=local
+objectClass: inetOrgPerson
+uid: ad.sylla
+cn: Mamadi Sylla
+givenName: Mamadi
+sn: Sylla
+mail: ad.sylla@guineasf.com
+userPassword: {SSHA}6q9bbFqz1cBkBr58pZ+wE3HwTzdnZmVwQWRUMQ==
+
+dn: uid=ad.camara,ou=Direction,dc=gnpaytrust,dc=local
+objectClass: inetOrgPerson
+uid: ad.camara
+cn: Lansana Camara
+givenName: Lansana
+sn: Camara
+mail: ad.camara@guineasf.com
+userPassword: {SSHA}6q9bbFqz1cBkBr58pZ+wE3HwTzdnZmVwQWRUMQ==
+
+dn: uid=ad.kourouma,ou=Informatique,dc=gnpaytrust,dc=local
+objectClass: inetOrgPerson
+uid: ad.kourouma
+cn: Sekou Kourouma
+givenName: Sekou
+sn: Kourouma
+mail: ad.kourouma@guineasf.com
+userPassword: {SSHA}6q9bbFqz1cBkBr58pZ+wE3HwTzdnZmVwQWRUMQ==
+
+dn: uid=ad.sansgroupe,ou=Commercial,dc=gnpaytrust,dc=local
+objectClass: inetOrgPerson
+uid: ad.sansgroupe
+cn: Nana Keita
+givenName: Nana
+sn: Keita
+mail: ad.sansgroupe@guineasf.com
+userPassword: {SSHA}6q9bbFqz1cBkBr58pZ+wE3HwTzdnZmVwQWRUMQ==
+
+dn: uid=ad.sansfiche,ou=RH,dc=gnpaytrust,dc=local
+objectClass: inetOrgPerson
+uid: ad.sansfiche
+cn: Ismael Bah
+givenName: Ismael
+sn: Bah
+mail: ad.sansfiche@guineasf.com
+userPassword: {SSHA}6q9bbFqz1cBkBr58pZ+wE3HwTzdnZmVwQWRUMQ==
+
+dn: uid=ad.conflit,ou=Audit,dc=gnpaytrust,dc=local
+objectClass: inetOrgPerson
+uid: ad.conflit
+cn: Mamadou Diallo
+givenName: Mamadou
+sn: Diallo
+mail: m.diallo@guineasf.com
+userPassword: {SSHA}6q9bbFqz1cBkBr58pZ+wE3HwTzdnZmVwQWRUMQ==
+
+dn: cn=GFEP-Employes,ou=Informatique,dc=gnpaytrust,dc=local
+objectClass: groupOfUniqueNames
+cn: GFEP-Employes
+uniqueMember: uid=ad.fofana,ou=Comptabilite,dc=gnpaytrust,dc=local
+uniqueMember: uid=ad.sylla,ou=Comptabilite,dc=gnpaytrust,dc=local
+uniqueMember: uid=ad.sansfiche,ou=RH,dc=gnpaytrust,dc=local
+uniqueMember: uid=ad.conflit,ou=Audit,dc=gnpaytrust,dc=local
+
+dn: cn=GFEP-Comptables,ou=Informatique,dc=gnpaytrust,dc=local
+objectClass: groupOfUniqueNames
+cn: GFEP-Comptables
+uniqueMember: uid=ad.sylla,ou=Comptabilite,dc=gnpaytrust,dc=local
+
+dn: cn=GFEP-SuperAdmins,ou=Informatique,dc=gnpaytrust,dc=local
+objectClass: groupOfUniqueNames
+cn: GFEP-SuperAdmins
+uniqueMember: uid=ad.camara,ou=Direction,dc=gnpaytrust,dc=local
+
+dn: cn=GFEP-Techniciens,ou=Informatique,dc=gnpaytrust,dc=local
+objectClass: groupOfUniqueNames
+cn: GFEP-Techniciens
+uniqueMember: uid=ad.kourouma,ou=Informatique,dc=gnpaytrust,dc=local
+
+dn: cn=GFEP-NonMappe,ou=Informatique,dc=gnpaytrust,dc=local
+objectClass: groupOfUniqueNames
+cn: GFEP-NonMappe
+uniqueMember: uid=ad.sansgroupe,ou=Commercial,dc=gnpaytrust,dc=local

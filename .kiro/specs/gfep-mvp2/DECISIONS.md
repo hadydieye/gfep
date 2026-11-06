@@ -368,6 +368,7 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 - Le compteur `repeated_forbidden` est **en mémoire du processus** : remis à zéro à chaque redémarrage, non partagé entre instances.
 - À traiter en 3.3, avec le durcissement : stockage partagé ou dérivé des logs structurés.
 - Même nature que le rate limiting en mémoire du MVP 1.
+- **Bibliothèque LDAP (ajout du 2026-11-06, demande de l'utilisateur) :** évaluer la migration de `ldapjs` vers `ldapts` avant la fin du projet. `ldapjs` est abandonné par ses mainteneurs, bien que fonctionnel et sans vulnérabilité connue (essai T2.7.0, M26). La migration ne touche que `ad-auth/ldap-client.ts`, derrière l'interface `LdapClientFactory` ; les tests `npm run test:ad` servent de non-régression.
 
 **« État des services »** (dashboards IT_ADMINISTRATOR, IT_TECHNICIAN, SUPER_ADMIN) :
 - **base de données** : requête Prisma triviale, sans SQL brut ;
@@ -426,7 +427,7 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 
 **LDAP de test (Docker Compose, profil `ad-test`) :**
 - Image `osixia/openldap`, port 636 lié à `127.0.0.1` uniquement.
-- Suffixe `dc=guineafinance,dc=local`.
+- Suffixe `dc=gnpaytrust,dc=local`.
 - OU : Direction, RH, Comptabilite, Informatique, Commercial, Audit, ServiceAccounts.
 - Compte de service `svc-ldapreader`.
 - Utilisateurs et groupes **de test uniquement**.
@@ -458,6 +459,33 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 - Chaque point à revoir est marqué `TODO(AD-REVISION)` dans le code prévu.
 
 ---
+
+### M34 — Mise en œuvre de l'étape 2.7 (2026-11-06)
+**Domaine :** le LDAP de test reprend le domaine réel `gnpaytrust.local` (`dc=gnpaytrust,dc=local`), à la demande de l'utilisateur. Les occurrences de `guineafinance.local` des specs sont remplacées (DECISIONS M23, design §9.1, requirements R30.1). Le nom commercial « GUINEA FINANCE » (interface, PDF du seed) et le domaine de messagerie `@guineasf.com` ne sont pas concernés.
+
+**Migration (T2.7.1) :** `ad_auth_event_types` ajoute 5 valeurs à `AuthEventType` (PostgreSQL 16 : une seule migration).
+
+**LDAP de test (T2.7.2) :**
+- Service `ldap-test` (profil `ad-test`, `osixia/openldap:1.5.0`, LDAPS imposé, `127.0.0.1`). Les LDIF sont montés dans le répertoire de bootstrap : ils ne sont appliqués qu'au premier démarrage, ce qui permet d'arrêter puis de relancer le conteneur (le montage via `LDAP_SEED_INTERNAL_LDIF_PATH` empêchait le redémarrage).
+- **Écart :** podman rootless ne peut pas lier un port inférieur à 1024 sur ce poste (`ip_unprivileged_port_start = 1024`) ; le port hôte vient de `LDAP_TEST_PORT` (636 par défaut, conforme à la spec ; 1636 utilisé ici). Aucun réglage système n'a été modifié.
+- Mots de passe de l'annuaire stockés en `{SSHA}` dans les LDIF ; valeurs en clair de test documentées dans `infra/ldap-test/README.md`, comme les mots de passe de démonstration du seed (I11). Mot de passe admin du conteneur : `LDAP_TEST_ADMIN_PASSWORD`.
+
+**Backend (T2.7.4 à T2.7.8) :**
+- Variables `AD_*` validées ; une variable manquante, une URL autre que `ldaps://` ou une CA illisible rendent l'AD indisponible (503, `AD_UNREACHABLE`, `SecurityEvent ad_unreachable` HIGH). L'AD est désactivé tant que `AD_LDAP_URL` est vide (valeur de `.env.example`).
+- `ldapjs` étant un module CommonJS, seul son export par défaut est disponible sous Node natif : un import nommé faisait planter le backend compilé, sans que Vitest le révèle. `SearchEntry.objectName` est un objet DN en v3 : sa forme texte (`pojo.objectName`) est utilisée. Ces deux défauts ont été trouvés par les tests contre le LDAP Docker.
+- `AuthService.openSession` est partagé par les flux local et AD : session, `LOGIN_SUCCESS` (méthode `ACTIVE_DIRECTORY`), alerte « nouvel appareil ».
+- Un compte AD existant suspendu ou verrouillé est refusé (401, `LOGIN_FAILED`).
+- **(dérivé — à valider)** L'identifiant saisi est limité à `[A-Za-z0-9._-]` (400 sinon), en plus de l'échappement RFC 4515 du filtre.
+- Throttler nommé `login-ad` (5 / 15 min / IP), indépendant de celui de `/auth/login`.
+- « État des services » : LDAP Disponible, Indisponible ou Non configuré (bind du compte de service, 3 s, cache 30 s, M20).
+- Audit `ad_mapping.create` et `ad_mapping.delete` ; un mapping en double renvoie 409.
+- Les rôles d'un compte AD restent non modifiables via `/access/users` (409, règle M17 de 2.4), et l'interface ne propose pas l'action (`canAssignRoles` faux) ; test ajouté.
+
+**Seed :** 30 permissions (catalogue complet de M24), 111 liaisons rôle-permission. `npm run seed:ad-test` crée 5 fiches de test sans compte local (`GF-2026-901` à `905`, hors des 40 employés de `05` §7) et 4 mappings.
+
+**Interface (T2.7.9) :** `/login/ad` reprend le formulaire local (point d'entrée `/auth/login-ad`, message distinct d'AppFlow §3.2 sur 503). `/access/ad-mappings` : sous-lien « Mappings AD » du menu Accès (`ad_mappings:read`) ; l'option SUPER_ADMIN et la suppression d'un mapping SUPER_ADMIN ne sont proposées qu'au SUPER_ADMIN.
+
+**Tests :** sans Docker, `ad-auth.spec.ts` (échappement, GUID, SID, configuration), `ad-auth.int-spec.ts` (annuaire simulé : chaque branche et son `AuthEvent`, défauts sûrs, aucun repli local, `ad_unreachable`, mot de passe jamais stocké, 409 sur les rôles d'un compte AD, rate limiting) et `ad-mappings.int-spec.ts` ; avec Docker, `npm run test:ad` (`test/ldap.ad-spec.ts`).
 
 ## Transverse
 
@@ -493,6 +521,23 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 - La spec le conserve conformément au TRD, derrière une interface `LdapClient` isolée pour permettre un remplacement (ex. `ldapts`) sans toucher au service.
 - **À décider avant 2.7 (tâche T2.7.0), sur preuve :** un essai de compatibilité de `ldapjs` avec **Node 24 et l'ESM** du backend (import ESM, bind LDAPS et recherche contre le LDAP de test, timeout, absence d'avertissement bloquant) est exécuté. Son résultat est documenté ici avant de trancher entre garder `ldapjs` et amender le TRD (ajout validé le 2026-11-05).
 
+**Résultat de l'essai T2.7.0 (2026-11-06, Node 24.21.0, `ldapjs` 3.0.7, `@types/ldapjs` 3.0.6), dans un projet isolé, contre le LDAP de test Docker :**
+
+| Vérification | Résultat |
+|---|---|
+| Import ESM (`import ldap from 'ldapjs'`, export CommonJS par défaut) | OK |
+| Typage avec la configuration du backend (`module`/`moduleResolution` `nodenext`, `esModuleInterop`), y compris avec `skipLibCheck: false` | OK, 0 erreur |
+| Bind LDAPS du compte de service, CA du conteneur | OK |
+| Recherche : `mail`, `memberOf` (2 groupes), `entryUUID` | OK |
+| Bind utilisateur : bon mot de passe accepté, mauvais refusé (`InvalidCredentialsError`) | OK |
+| CA inconnue refusée (`SELF_SIGNED_CERT_IN_CHAIN`) : la vérification TLS reste active | OK |
+| Délai de 3 s : handshake TLS jamais conclu → erreur à 3020 ms ; bind sans réponse → `TimeoutError` à 3027 ms | OK |
+| Port fermé → `ECONNREFUSED` immédiat | OK |
+| Avertissements à l'exécution (`--trace-deprecation --trace-warnings`) | aucun |
+| Avertissements à l'installation | `ldapjs` et ses 9 sous-paquets `@ldapjs/*` signalés « decomissioned » par npm ; 0 vulnérabilité connue (`npm audit`) |
+
+**Décision :** aucun défaut de fonctionnement ; seul l'abandon officiel du paquet, déjà connu, pose un risque de maintenance (aucun correctif de sécurité à venir). `ldapjs` est **conservé** conformément au TRD §8, derrière l'interface `LdapClientFactory` / `LdapConnection` (`ad-auth/ldap-client.ts`) : le reste du module n'importe jamais `ldapjs`. Alternative identifiée pour un remplacement ultérieur, sans changement du service : `ldapts` (9.2.0, maintenue, TypeScript natif). À trancher avec l'utilisateur ; marqué `TODO(AD-REVISION)`.
+
 ### M27 — Mise en œuvre de l'étape 2.1 (2026-11-05)
 - **Aucune migration** à l'étape 2.1 : le schéma permet déjà le seed complet. `05-Backend-Schema.md` est inchangé.
 - **Structure du seed :**
@@ -513,17 +558,19 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 
 ## À RÉVISER APRÈS MISE EN PLACE DE L'AD
 
-Décisions ouvertes (Q19 reportée), toutes marquées `TODO(AD-REVISION)` dans le code de 2.7 :
+Décisions ouvertes (Q19 reportée). Chaque point est marqué `TODO(AD-REVISION)` dans le code de 2.7 ; l'emplacement est indiqué (revue T2.7.12 du 2026-11-06 : 16 marqueurs, tous rattachés à un point ci-dessous).
 
-1. **Rattachement AD → Employee :** provisoirement par `mail = professionalEmail`, puis par GUID. À confirmer selon l'attribut fiable du vrai annuaire (`mail`, `employeeID`, `userPrincipalName`).
-2. **Attributs réels :** identifiant `sAMAccountName` (test : `uid`), GUID `objectGUID`, à convertir du binaire (test : `entryUUID`), SID `objectSid`, à convertir du binaire (test : absent), groupes `memberOf`.
-3. **Mapping réel des groupes AD → rôles :** les groupes de test (`cn=GFEP-*`) sont fictifs. Il faut définir les groupes de production et l'éventuelle imbrication de groupes (`memberOf` ne la résout pas).
+1. **Rattachement AD → Employee :** provisoirement par `mail = professionalEmail` (insensible à la casse), puis par GUID. À confirmer selon l'attribut fiable du vrai annuaire (`mail`, `employeeID`, `userPrincipalName`). — `ad-auth.service.ts` (étape 4).
+2. **Attributs réels :** identifiant `sAMAccountName` (test : `uid`), GUID `objectGUID`, à convertir du binaire (test : `entryUUID`), SID `objectSid`, à convertir du binaire (test : absent), groupes `memberOf`. Les conversions binaires sont écrites et testées unitairement, mais jamais exécutées contre un vrai AD. — `ad-auth.service.ts` (`toDirectoryUser`), `ldap-client.ts` (`readGuid`, `readSid`).
+3. **Mapping réel des groupes AD → rôles :** les groupes de test (`cn=GFEP-*`, placés dans l'OU `Informatique`) sont fictifs. Il faut définir les groupes de production et l'éventuelle imbrication de groupes (`memberOf` ne la résout pas). — `ad-auth.service.ts` (étape 5), `ad-mappings.service.ts`, `prisma/seed-ad-test.ts`.
 4. **Comptes de service :**
    - `svc-ldapreader` en lecture seule ;
    - le second compte applicatif distinct exigé par le TRD §8 n'est pas créé, car aucun usage n'existe en MVP 2 ;
-   - droits minimaux et rotation des mots de passe à définir.
-5. **Certificat LDAPS :** en test, une CA auto-signée générée pour le conteneur. En production, la CA du DC01 et la validation du nom d'hôte.
-6. **Employé ayant déjà un compte LOCAL :** refus en MVP 2. Une procédure de migration d'un compte LOCAL vers un compte AD est à définir.
-7. **Synchronisation des rôles :** les rôles sont écrasés depuis les groupes à chaque connexion. La révocation d'un compte supprimé de l'AD hors connexion n'est pas traitée.
-8. **Verrouillage et politique de mot de passe :** déléguée à l'AD. L'articulation avec les `AuthEvent` locaux est à définir.
-9. **Bibliothèque LDAP :** voir M26.
+   - droits minimaux et rotation des mots de passe à définir. — `ad-config.ts`.
+5. **Certificat LDAPS :** en test, une CA auto-signée générée pour le conteneur (`infra/ldap-test/generate-certs.sh`). En production, la CA du DC01 ; le nom d'hôte est déjà vérifié (vérification TLS par défaut de Node, jamais désactivée). — `ad-config.ts`, `generate-certs.sh`.
+6. **Employé ayant déjà un compte LOCAL :** refus en MVP 2 (`AD_LOCAL_ACCOUNT_CONFLICT`), jamais de fusion. Une procédure de migration d'un compte LOCAL vers un compte AD est à définir. — `ad-auth.service.ts`.
+7. **Synchronisation des rôles :** les rôles sont écrasés depuis les groupes à chaque connexion (`assignedBy = ad-sync`). La révocation d'un compte supprimé de l'AD hors connexion n'est pas traitée. — `ad-auth.service.ts` (étape 6).
+8. **Verrouillage et politique de mot de passe :** déléguée à l'AD (aucun compteur d'échecs local pour un compte AD). L'articulation avec les `AuthEvent` locaux est à définir. — `ad-auth.service.ts` (étape 3).
+9. **Bibliothèque LDAP :** `ldapjs` conservé après l'essai T2.7.0 malgré son abandon ; remplacement par `ldapts` à trancher (M26). — `ldap-client.ts`.
+10. **Identifiant du compte GFEP :** l'identifiant d'annuaire en minuscules (`uid`, futur `sAMAccountName`) devient `User.username` ; un identifiant ou un e-mail déjà pris par un autre compte est refusé (`AD_LOCAL_ACCOUNT_CONFLICT`). À confirmer avec les conventions de nommage de l'AD réel. — `ad-auth.service.ts` (`AD_SYNC_ASSIGNER`).
+11. **E-mails des fiches de test :** les utilisateurs du LDAP de test portent des e-mails `@guineasf.com`, comme les fiches du seed. Le domaine de messagerie réel est à confirmer avec l'AD réel (`gnpaytrust.local` est le domaine AD, pas un domaine de messagerie).

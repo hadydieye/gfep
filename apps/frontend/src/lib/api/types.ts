@@ -89,7 +89,7 @@ export interface DashboardData {
     dueDate: string;
     status: InvoiceStatus;
   }>;
-  services?: { database: 'UP' | 'DOWN'; ldap: 'NOT_CONFIGURED' };
+  services?: { database: 'UP' | 'DOWN'; ldap: 'UP' | 'DOWN' | 'NOT_CONFIGURED' };
   recentAccounts?: { created: DashboardAccount[]; suspended: DashboardAccount[] };
   headcountByDepartment?: Array<{ code: string; name: string; count: number }>;
   recentHires?: Array<{ id: string; firstName: string; lastName: string; department: string; hireDate: string }>;
@@ -301,7 +301,18 @@ export type AuthEventType =
   | 'LOGOUT'
   | 'ACCOUNT_LOCKED'
   | 'AD_BIND_FAILED'
-  | 'AD_UNREACHABLE';
+  | 'AD_UNREACHABLE'
+  | 'AD_SERVICE_BIND_FAILED'
+  | 'AD_USER_NOT_FOUND'
+  | 'AD_NO_EMPLOYEE_MATCH'
+  | 'AD_NO_ROLE_MAPPING'
+  | 'AD_LOCAL_ACCOUNT_CONFLICT';
+
+export interface AdMapping {
+  id: string;
+  adGroupDn: string;
+  role: { id: string; name: RoleName };
+}
 
 export interface AuditLogItem {
   id: string;

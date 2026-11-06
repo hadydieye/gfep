@@ -19,7 +19,8 @@ import {
 } from './helpers.js';
 
 // Seules routes autorisées sans session
-const ALLOWED_PUBLIC = ['GET /api/v1/health', 'POST /api/v1/auth/login'];
+// POST /auth/login-ad (étape 2.7, T1.3) : point d'entrée d'authentification AD, équivalent de /auth/login
+const ALLOWED_PUBLIC = ['GET /api/v1/health', 'POST /api/v1/auth/login', 'POST /api/v1/auth/login-ad'];
 
 interface RouteInfo {
   key: string;
@@ -103,7 +104,7 @@ describe('Interdiction par défaut (intégration)', () => {
     expect((await request(app.getHttpServer()).get('/api/v1')).status).toBe(404);
   });
 
-  it('seules /health et /auth/login sont @Public()', () => {
+  it('seules /health, /auth/login et /auth/login-ad sont @Public()', () => {
     expect(routes.filter((r) => r.isPublic).map((r) => r.key).sort()).toEqual(
       [...ALLOWED_PUBLIC].sort(),
     );

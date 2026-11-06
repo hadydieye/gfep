@@ -33,7 +33,22 @@ export function loginErrorMessage(status: number): string {
   return LOGIN_ERRORS.invalid;
 }
 
-export function LoginForm() {
+export const AD_UNAVAILABLE_MESSAGE =
+  "Service d'authentification d'entreprise indisponible, réessayez plus tard ou utilisez votre compte local";
+
+/** Connexion d'entreprise (AppFlow §3.2) : 503 = annuaire injoignable, message distinct ; jamais de repli local. */
+export function adLoginErrorMessage(status: number): string {
+  if (status === 503) return AD_UNAVAILABLE_MESSAGE;
+  return loginErrorMessage(status);
+}
+
+export function LoginForm({
+  endpoint = '/auth/login',
+  errorMessage = loginErrorMessage,
+}: {
+  endpoint?: '/auth/login' | '/auth/login-ad';
+  errorMessage?: (status: number) => string;
+} = {}) {
   const router = useRouter();
   const [formError, setFormError] = useState<string | null>(null);
   const {
@@ -44,7 +59,7 @@ export function LoginForm() {
 
   const onSubmit = async (values: LoginValues) => {
     setFormError(null);
-    const result = await apiFetch('/auth/login', {
+    const result = await apiFetch(endpoint, {
       method: 'POST',
       body: JSON.stringify(values),
     });
@@ -53,7 +68,7 @@ export function LoginForm() {
       router.refresh();
       return;
     }
-    setFormError(loginErrorMessage(result.status));
+    setFormError(errorMessage(result.status));
   };
 
   return (

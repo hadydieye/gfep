@@ -460,7 +460,7 @@ Les notifications sont écrites dans la même transaction que l'action, quand ce
 | Variable | Test (Docker) | AD futur — `TODO(AD-REVISION)` |
 |---|---|---|
 | `AD_LDAP_URL` | `ldaps://127.0.0.1:636` | `ldaps://dc01…:636` |
-| `AD_BASE_DN` | `dc=guineafinance,dc=local` | idem |
+| `AD_BASE_DN` | `dc=gnpaytrust,dc=local` | idem |
 | `AD_USER_ID_ATTRIBUTE` | `uid` | `sAMAccountName` |
 | `AD_MAIL_ATTRIBUTE` | `mail` | `mail` |
 | `AD_GROUPS_ATTRIBUTE` | `memberOf` | `memberOf` |

@@ -30,15 +30,21 @@ export function testPrisma(): PrismaClient {
 /**
  * Application Nest complète, configurée par configureApp() comme src/main.ts.
  * `controllers` permet d'ajouter des contrôleurs de test (ex. interdiction par défaut).
+ * `overrides` remplace des providers (ex. `LdapClientFactory` par un annuaire simulé).
  */
 export async function createTestApp(
-  options: { controllers?: Type[] } = {},
+  options: { controllers?: Type[]; overrides?: Array<{ provide: unknown; useValue: unknown }> } = {},
 ): Promise<NestExpressApplication> {
   assertTestDatabaseUrl(process.env.DATABASE_URL);
-  const moduleRef = await Test.createTestingModule({
+  let builder = Test.createTestingModule({
     imports: [AppModule],
     controllers: options.controllers ?? [],
-  }).compile();
+  });
+  // Remplacement d'un provider (ex. annuaire LDAP simulé pour les tests sans Docker)
+  for (const { provide, useValue } of options.overrides ?? []) {
+    builder = builder.overrideProvider(provide).useValue(useValue);
+  }
+  const moduleRef = await builder.compile();
   const app = configureApp(moduleRef.createNestApplication<NestExpressApplication>({ logger: false }));
   await app.init();
   return app;

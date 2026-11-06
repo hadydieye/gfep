@@ -30,6 +30,7 @@ const AUDIT_FIELDS: Record<string, readonly string[]> = {
   ],
   User: ['username', 'role', 'roles', 'status', 'failedLoginCount', 'revokedSessions'],
   Role: ['name', 'permissions'],
+  AdGroupRoleMapping: ['adGroupDn', 'role'],
 };
 
 export interface AuditEntry {

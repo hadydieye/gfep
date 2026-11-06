@@ -10,6 +10,7 @@ import {
   UserStatus,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
+import { AdStatusService } from '../ad-auth/ad-status.service.js';
 import { AuditReadService } from '../audit/audit-read.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -33,6 +34,7 @@ export class DashboardService {
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
     private readonly auditRead: AuditReadService,
+    private readonly adStatus: AdStatusService,
   ) {}
 
   async getIndicators(user: AuthenticatedUser): Promise<DashboardResponseDto> {
@@ -126,13 +128,13 @@ export class DashboardService {
     };
   }
 
-  /** Base de données : requête Prisma triviale, sans SQL brut (M20). LDAP non configuré avant 2.7. */
+  /** Base de données : requête Prisma triviale, sans SQL brut (M20). LDAP : bind du compte de service (2.7). */
   private async serviceStatus(): Promise<NonNullable<DashboardResponseDto['services']>> {
     const database = await this.prisma.role
       .count()
       .then(() => 'UP' as const)
       .catch(() => 'DOWN' as const);
-    return { database, ldap: 'NOT_CONFIGURED' };
+    return { database, ldap: await this.adStatus.status() };
   }
 
   private async recentAccounts(): Promise<NonNullable<DashboardResponseDto['recentAccounts']>> {

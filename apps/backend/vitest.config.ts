@@ -16,6 +16,8 @@ export default defineConfig({
       NODE_ENV: 'test',
       SESSION_COOKIE_NAME: 'gfep_session',
       DOCUMENTS_STORAGE_DIR: testStorageDir(),
+      // npm test sans annuaire : AD non configuré (les tests AD réels passent par npm run test:ad)
+      AD_LDAP_URL: '',
     },
     // Les suites partagent la base de test : exécution séquentielle
     fileParallelism: false,

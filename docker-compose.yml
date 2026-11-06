@@ -17,5 +17,31 @@ services:
       timeout: 5s
       retries: 5
 
+  # LDAP de test (étape 2.7, M23) : jamais un vrai AD. Démarrage explicite :
+  #   ./infra/ldap-test/generate-certs.sh && docker compose --profile ad-test up -d ldap-test
+  # LDAPS uniquement, lié à 127.0.0.1. Port hôte 636 par défaut ; LDAP_TEST_PORT permet un
+  # port non privilégié (podman rootless). Voir infra/ldap-test/README.md.
+  ldap-test:
+    image: docker.io/osixia/openldap:1.5.0
+    container_name: gfep_ldap_test
+    profiles: ['ad-test']
+    command: --copy-service
+    ports:
+      - '127.0.0.1:${LDAP_TEST_PORT:-636}:636'
+    environment:
+      LDAP_ORGANISATION: 'GN PayTrust (test)'
+      LDAP_DOMAIN: gnpaytrust.local
+      LDAP_ADMIN_PASSWORD: ${LDAP_TEST_ADMIN_PASSWORD:-ldap-test-admin}
+      LDAP_TLS: 'true'
+      LDAP_TLS_ENFORCE: 'true'
+      LDAP_TLS_VERIFY_CLIENT: never
+      LDAP_TLS_CRT_FILENAME: ldap.crt
+      LDAP_TLS_KEY_FILENAME: ldap.key
+      LDAP_TLS_CA_CRT_FILENAME: ca.crt
+    volumes:
+      - ./infra/ldap-test/certs:/container/service/slapd/assets/certs
+      # LDIF appliqués au premier démarrage uniquement ; --copy-service permet un montage en lecture seule
+      - ./infra/ldap-test/ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom:ro
+
 volumes:
   postgres_data:

@@ -23,7 +23,8 @@ export class DashboardResponseDto {
     pendingInvoicesTotal?: number;
   };
   /** SA, ITA, ITT : état des services (base de données ; LDAP « non configuré » avant 2.7) */
-  services?: { database: 'UP' | 'DOWN'; ldap: 'NOT_CONFIGURED' };
+  /** LDAP : Disponible (UP), Indisponible (DOWN) ou Non configuré, bind du compte de service mis en cache 30 s */
+  services?: { database: 'UP' | 'DOWN'; ldap: 'UP' | 'DOWN' | 'NOT_CONFIGURED' };
   /** SA, ITA : comptes récemment créés et récemment suspendus */
   recentAccounts?: {
     created: DashboardAccountDto[];

@@ -20,6 +20,8 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   'transaction.create': 'Création de transaction',
   'transaction.status_change': 'Décision sur une transaction',
   'invoice.status_change': 'Changement de statut de facture',
+  'ad_mapping.create': 'Création d’un mapping AD',
+  'ad_mapping.delete': 'Suppression d’un mapping AD',
 };
 
 export const SECURITY_EVENT_LABELS: Record<string, string> = {
@@ -33,8 +35,13 @@ export const AUTH_EVENT_LABELS: Record<AuthEventType, string> = {
   LOGIN_FAILED: 'Échec de connexion',
   LOGOUT: 'Déconnexion',
   ACCOUNT_LOCKED: 'Verrouillage',
-  AD_BIND_FAILED: 'Échec annuaire',
+  AD_BIND_FAILED: 'Mot de passe d’annuaire refusé',
   AD_UNREACHABLE: 'Annuaire injoignable',
+  AD_SERVICE_BIND_FAILED: 'Compte de service refusé',
+  AD_USER_NOT_FOUND: 'Utilisateur d’annuaire introuvable',
+  AD_NO_EMPLOYEE_MATCH: 'Aucune fiche employé',
+  AD_NO_ROLE_MAPPING: 'Aucun groupe mappé',
+  AD_LOCAL_ACCOUNT_CONFLICT: 'Conflit avec un compte local',
 };
 
 const SEVERITY: Record<SecuritySeverity, { label: string; variant: 'neutral' | 'warning' | 'error' }> = {

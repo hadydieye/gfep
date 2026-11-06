@@ -378,7 +378,7 @@ Ce document définit les exigences du MVP 2 de GFEP, dans l'ordre exact de `06-I
 
 1. `docker-compose.yml` SHALL define an OpenLDAP service under the `ad-test` profile :
    - LDAPS only, port 636 bound to `127.0.0.1` ;
-   - suffix `dc=guineafinance,dc=local` ;
+   - suffix `dc=gnpaytrust,dc=local` ;
    - OU Direction, RH, Comptabilite, Informatique, Commercial, Audit, ServiceAccounts ;
    - `svc-ldapreader` ;
    - test users and groups.

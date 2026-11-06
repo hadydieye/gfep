@@ -353,7 +353,7 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
 
 ## Étape 2.7 — Authentification Active Directory (LDAP de test)
 
-- [ ] T2.7.0 — Décision préalable sur `ldapjs`, sur preuve
+- [x] T2.7.0 — Décision préalable sur `ldapjs`, sur preuve
   - **Essai de compatibilité** de `ldapjs` avec **Node 24 et l'ESM** du backend :
     - import ESM et types ;
     - bind LDAPS et recherche contre le LDAP de test ;
@@ -362,27 +362,27 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
   - Résultat documenté dans `DECISIONS.md` (M26).
   - Puis décision : garder `ldapjs` (TRD §8) ou amender le TRD.
   - _→ M26_
-- [ ] T2.7.1 — Migration `ad_auth_event_types`
+- [x] T2.7.1 — Migration `ad_auth_event_types`
   - 5 valeurs d'enum `AuthEventType`.
   - Mise à jour de `05` §3, de `schema.spec.ts` et de `DECISIONS.md`.
   - _→ T5, M2, M23_
-- [ ] T2.7.2 — Infrastructure LDAP de test
+- [x] T2.7.2 — Infrastructure LDAP de test
   - Service `ldap-test` dans `docker-compose.yml` (profil `ad-test`, `127.0.0.1:636`, TLS obligatoire, overlay `memberOf`).
   - `infra/ldap-test/` : `bootstrap.ldif`, `generate-certs.sh`, `README.md`.
   - _→ R30_
-- [ ] T2.7.3 — `prisma/seed-ad-test.ts` (`npm run seed:ad-test`, refuse la production)
+- [x] T2.7.3 — `prisma/seed-ad-test.ts` (`npm run seed:ad-test`, refuse la production)
   - Fiches Employee de test sans compte local.
   - Mappings `GFEP-*`.
   - _→ R30, M23_
-- [ ] T2.7.4 — `ad-config.ts` (variables de design §9.1, validées)
+- [x] T2.7.4 — `ad-config.ts` (variables de design §9.1, validées)
   - Une variable manquante rend l'AD indisponible.
   - `.env.example`.
   - _→ R31.2_
-- [ ] T2.7.5 — `ldap-client.ts`
+- [x] T2.7.5 — `ldap-client.ts`
   - Interface `LdapClient` et implémentation (LDAPS, CA, timeout de 3 s, fermeture systématique).
   - Échappement RFC 4515.
   - _→ R31.6, M26_
-- [ ] T2.7.6 — `AdAuthService.login`
+- [x] T2.7.6 — `AdAuthService.login`
   - Flux de design §9.3.
   - Un `AuthEvent` par étape ; `SecurityEvent ad_unreachable`.
   - Défauts sûrs.
@@ -390,37 +390,38 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
   - Notification « nouvel appareil ».
   - `TODO(AD-REVISION)` sur chaque point ouvert.
   - _→ R31.3–R31.7, M23_
-- [ ] T2.7.7 — `POST /auth/login-ad`
+- [x] T2.7.7 — `POST /auth/login-ad`
   - `@Public()` (justification en commentaire).
   - Throttler `login-ad` (5 tentatives / 15 min / IP).
   - Ajout aux routes publiques autorisées de `route-access.int-spec.ts`.
   - _→ R31.1, T1_
-- [ ] T2.7.8 — Seed : permissions `ad_mappings:read` et `ad_mappings:write` (SA, ITA)
+- [x] T2.7.8 — Seed : permissions `ad_mappings:read` et `ad_mappings:write` (SA, ITA)
   - Module des mappings : liste, création, suppression.
   - Garde-fou SUPER_ADMIN ; audit.
   - _→ R32, M22, M24_
-- [ ] T2.7.9 — Frontend
+- [x] T2.7.9 — Frontend
   - `/login/ad` : vrai formulaire avec ses messages.
   - `/access/ad-mappings`.
   - État LDAP dans `ServiceStatusCard`.
   - _→ R32, R33_
-- [ ] T2.7.10 — Tests sans Docker (`npm test`)
+- [x] T2.7.10 — Tests sans Docker (`npm test`)
   - `ad-auth.service.spec.ts` (`LdapClient` simulé : chaque branche, `AuthEvent` attendus, aucun repli local, échappement).
   - `ad-mappings.int-spec.ts` (matrice et garde-fou).
   - _→ T2, R34.2_
-- [ ] T2.7.11 — Tests contre le LDAP Docker (`npm run test:ad`)
+- [x] T2.7.11 — Tests contre le LDAP Docker (`npm run test:ad`)
   - Succès avec mapping.
   - Deuxième connexion par GUID.
   - Chaque cas de refus.
   - Conteneur arrêté → 503, `AD_UNREACHABLE` et `SecurityEvent`.
   - _→ R34.1_
-- [ ] T2.7.12 — Revue AD
+- [x] T2.7.12 — Revue AD
   - Lister les `TODO(AD-REVISION)` du code.
   - Vérifier qu'ils correspondent au bloc « À RÉVISER APRÈS MISE EN PLACE DE L'AD » de `DECISIONS.md`.
   - _→ M23_
-- [ ] T2.7.13 — Critère de passage 2.7
+- [x] T2.7.13 — Critère de passage 2.7
   - `npm run test:ad` passe : connexion réussie via le LDAP de test, mapping groupe → rôle fonctionnel, refus propre (`AD_UNREACHABLE`) quand le LDAP est arrêté.
-  - Validation manuelle utilisateur sur `/login/ad` : ☐.
+  - Vérifié : `npm run test:ad` passe (12 tests, deux exécutions, conteneur arrêté puis relancé par le test), et contrôle sur l'application compilée (`node dist/main.js`) contre le LDAP de test : connexion `ad.sylla` → ACCOUNTANT + EMPLOYEE, refus 401 des trois défauts sûrs, LDAP « Disponible », mappings ITA 200 / ITT 403, rôles d'un compte AD → 409.
+  - Validation manuelle utilisateur sur `/login/ad` : ☑ (confirmée par l'utilisateur le 2026-11-06).
   - `PROGRESS.md`.
   - _→ R34_
 

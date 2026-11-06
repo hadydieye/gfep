@@ -154,6 +154,12 @@ const AUDIT_PERMISSION_SEEDS = [
   { resource: 'documents', action: 'history', description: 'Consulter l’historique de consultation d’un document' },
 ] as const;
 
+// Étape 2.7 : mappings groupe AD → rôle (M22, M24)
+const AD_MAPPING_PERMISSION_SEEDS = [
+  { resource: 'ad_mappings', action: 'read', description: 'Consulter les mappings groupe AD → rôle' },
+  { resource: 'ad_mappings', action: 'write', description: 'Créer et supprimer des mappings groupe AD → rôle' },
+] as const;
+
 const PERMISSION_SEEDS = [
   ...MVP1_DATA.permissions,
   ...DOCUMENT_PERMISSION_SEEDS,
@@ -161,6 +167,7 @@ const PERMISSION_SEEDS = [
   ...ACCESS_PERMISSION_SEEDS,
   ...NOTIFICATION_PERMISSION_SEEDS,
   ...AUDIT_PERMISSION_SEEDS,
+  ...AD_MAPPING_PERMISSION_SEEDS,
 ];
 
 // Les 8 rôles (M5, M6, M15) : 3 rôles MVP 1, ACCOUNTANT (2.3), 4 rôles ajoutés en 2.4
@@ -178,8 +185,7 @@ const READ_BASE = ['dashboard:read', 'employees:read', 'departments:read', 'noti
 const DOCUMENTS_NO_VALIDATE = DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate');
 
 /**
- * Matrice rôle → permissions à l'étape 2.6 (design §2, limitée aux permissions qui
- * existent : 28 sur 30, M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
+ * Matrice rôle → permissions finale (design §2) : 30 permissions (M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
  */
 export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   SUPER_ADMIN: PERMISSION_SEEDS.map(({ resource, action }) => `${resource}:${action}`),
@@ -191,6 +197,8 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'users:assign_role',
     'users:suspend',
     'users:unlock',
+    'ad_mappings:read',
+    'ad_mappings:write',
   ],
   // M15 : lecture seule employés et départements, ses notifications ; ni documents, ni finance, ni accès
   IT_TECHNICIAN: [...READ_BASE],
