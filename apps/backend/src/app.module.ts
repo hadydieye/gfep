@@ -1,6 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
 import { AccessModule } from './access/access.module.js';
@@ -19,6 +19,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { PermissionGuard } from './rbac/guards/permission.guard.js';
 import { RoleGuard } from './rbac/guards/roles.guard.js';
 import { RbacModule } from './rbac/rbac.module.js';
+import { ForbiddenAuditFilter } from './security/forbidden-audit.filter.js';
+import { SecurityModule } from './security/security.module.js';
 
 @Module({
   imports: [
@@ -32,6 +34,7 @@ import { RbacModule } from './rbac/rbac.module.js';
     AuthModule,
     AuditModule,
     NotificationsModule,
+    SecurityModule,
     RbacModule,
     DashboardModule,
     DocumentsModule,
@@ -46,6 +49,8 @@ import { RbacModule } from './rbac/rbac.module.js';
     { provide: APP_GUARD, useClass: SessionGuard },
     { provide: APP_GUARD, useClass: RoleGuard },
     { provide: APP_GUARD, useClass: PermissionGuard },
+    // repeated_forbidden (M20) : compte les 403 par compte, puis renvoie le 403 standard
+    { provide: APP_FILTER, useClass: ForbiddenAuditFilter },
   ],
 })
 export class AppModule implements NestModule {

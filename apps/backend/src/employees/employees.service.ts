@@ -79,7 +79,7 @@ export class EmployeesService {
     return toResponse(employee);
   }
 
-  async create(dto: CreateEmployeeDto, user: AuthenticatedUser): Promise<EmployeeResponseDto> {
+  async create(dto: CreateEmployeeDto, user: AuthenticatedUser, sourceIp = 'unknown'): Promise<EmployeeResponseDto> {
     const scopeDepartmentId = writeScopeDepartmentId(user);
     if (scopeDepartmentId && dto.departmentId !== scopeDepartmentId) {
       throw new ForbiddenException();
@@ -102,6 +102,15 @@ export class EmployeesService {
               hireDate: new Date(dto.hireDate),
             },
             include: EMPLOYEE_INCLUDE,
+          });
+          // R26.1 (étape 2.6) : création auditée dans la transaction
+          await this.audit.record(tx, {
+            actorId: user.id,
+            action: 'employee.create',
+            resourceType: 'Employee',
+            resourceId: created.id,
+            sourceIp,
+            newValues: employeeAuditValues(created),
           });
           // M19, AppFlow §6 : le responsable désigné est notifié, s'il a un compte
           if (created.managerId) {
@@ -133,6 +142,7 @@ export class EmployeesService {
     id: string,
     dto: UpdateEmployeeDto,
     user: AuthenticatedUser,
+    sourceIp = 'unknown',
   ): Promise<EmployeeResponseDto> {
     const existing = await this.prisma.employee.findUnique({ where: { id } });
     if (!existing) {
@@ -156,20 +166,36 @@ export class EmployeesService {
       dto.managerId,
     );
 
-    const employee = await this.prisma.employee
-      .update({
-        where: { id },
-        data: {
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          professionalEmail: dto.professionalEmail,
-          phone: dto.phone,
-          departmentId: dto.departmentId,
-          positionId: dto.positionId,
-          managerId: dto.managerId,
-          hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
-        },
-        include: EMPLOYEE_INCLUDE,
+    const employee = await this.prisma
+      .$transaction(async (tx) => {
+        const updated = await tx.employee.update({
+          where: { id },
+          data: {
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            professionalEmail: dto.professionalEmail,
+            phone: dto.phone,
+            departmentId: dto.departmentId,
+            positionId: dto.positionId,
+            managerId: dto.managerId,
+            hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
+          },
+          include: EMPLOYEE_INCLUDE,
+        });
+        // R26.1 (étape 2.6) : seuls les champs modifiés, avant et après
+        const before = employeeAuditValues(existing);
+        const after = employeeAuditValues(updated);
+        const changed = (Object.keys(after) as Array<keyof typeof after>).filter((key) => before[key] !== after[key]);
+        await this.audit.record(tx, {
+          actorId: user.id,
+          action: 'employee.update',
+          resourceType: 'Employee',
+          resourceId: id,
+          sourceIp,
+          oldValues: Object.fromEntries(changed.map((key) => [key, before[key]])),
+          newValues: Object.fromEntries(changed.map((key) => [key, after[key]])),
+        });
+        return updated;
       })
       .catch((error: unknown) => {
         throw translateUniqueViolation(error);
@@ -299,6 +325,31 @@ function translateUniqueViolation(error: unknown): unknown {
     return new ConflictException("Impossible d'attribuer un numéro d'employé. Réessayez.");
   }
   return new ConflictException('Cette donnée existe déjà.');
+}
+
+// Champs de la fiche journalisés (liste blanche Employee de l'AuditService) ; aucun secret
+function employeeAuditValues(employee: {
+  employeeNumber: string;
+  firstName: string;
+  lastName: string;
+  professionalEmail: string;
+  phone: string | null;
+  departmentId: string;
+  positionId: string;
+  managerId: string | null;
+  hireDate: Date;
+}) {
+  return {
+    employeeNumber: employee.employeeNumber,
+    firstName: employee.firstName,
+    lastName: employee.lastName,
+    professionalEmail: employee.professionalEmail,
+    phone: employee.phone,
+    departmentId: employee.departmentId,
+    positionId: employee.positionId,
+    managerId: employee.managerId,
+    hireDate: employee.hireDate.toISOString().slice(0, 10),
+  };
 }
 
 function toResponse(employee: EmployeeWithRelations): EmployeeResponseDto {

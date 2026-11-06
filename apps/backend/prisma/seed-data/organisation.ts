@@ -147,12 +147,20 @@ const NOTIFICATION_PERMISSION_SEEDS = [
   { resource: 'notifications', action: 'update', description: 'Marquer ses notifications comme lues' },
 ] as const;
 
+// Étape 2.6 : journaux d'audit, événements de sécurité, historique de consultation (M21, M24)
+const AUDIT_PERMISSION_SEEDS = [
+  { resource: 'audit', action: 'read', description: 'Consulter le journal d’audit et les authentifications' },
+  { resource: 'security_events', action: 'read', description: 'Consulter les événements de sécurité' },
+  { resource: 'documents', action: 'history', description: 'Consulter l’historique de consultation d’un document' },
+] as const;
+
 const PERMISSION_SEEDS = [
   ...MVP1_DATA.permissions,
   ...DOCUMENT_PERMISSION_SEEDS,
   ...FINANCE_PERMISSION_SEEDS,
   ...ACCESS_PERMISSION_SEEDS,
   ...NOTIFICATION_PERMISSION_SEEDS,
+  ...AUDIT_PERMISSION_SEEDS,
 ];
 
 // Les 8 rôles (M5, M6, M15) : 3 rôles MVP 1, ACCOUNTANT (2.3), 4 rôles ajoutés en 2.4
@@ -170,8 +178,8 @@ const READ_BASE = ['dashboard:read', 'employees:read', 'departments:read', 'noti
 const DOCUMENTS_NO_VALIDATE = DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate');
 
 /**
- * Matrice rôle → permissions à l'étape 2.5 (design §2, limitée aux permissions qui
- * existent : 25 sur 30, M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
+ * Matrice rôle → permissions à l'étape 2.6 (design §2, limitée aux permissions qui
+ * existent : 28 sur 30, M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
  */
 export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
   SUPER_ADMIN: PERMISSION_SEEDS.map(({ resource, action }) => `${resource}:${action}`),
@@ -201,8 +209,8 @@ export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
     'invoices:read',
   ],
   EMPLOYEE: [...READ_BASE, ...DOCUMENTS_NO_VALIDATE],
-  // Avant 2.6 : aucune permission d'audit n'existe encore (audit:read, security_events:read)
-  AUDITOR: [...READ_BASE, ...DOCUMENTS_NO_VALIDATE],
+  // Lecture du journal d'audit, des événements de sécurité et de l'historique de consultation (M21, M24)
+  AUDITOR: [...READ_BASE, ...DOCUMENTS_NO_VALIDATE, 'audit:read', 'security_events:read', 'documents:history'],
 };
 
 // Comptes à l'étape 2.4 (M5) ; les autres comptes sont EMPLOYEE

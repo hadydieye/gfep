@@ -60,6 +60,7 @@ function fakePrisma(existingNumbers: string[], failures: unknown[]) {
       findMany: vi.fn(async () => existingNumbers.map((employeeNumber) => ({ employeeNumber }))),
       create,
     },
+    auditLog: { create: vi.fn() },
   };
   const prisma = {
     department: { findUnique: vi.fn(async () => ({ id: 'd1' })) },

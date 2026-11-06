@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateDocumentDto } from './dto/create-document.dto.js';
 import type {
   DocumentCategoryDto,
+  DocumentHistoryEntryDto,
   DocumentPermissionResponseDto,
   DocumentResponseDto,
   DocumentShareRecipientDto,
@@ -232,6 +233,27 @@ export class DocumentsService {
       });
       return toResponse(saved, user);
     });
+  }
+
+  /**
+   * Historique de consultation (R28.4, M24 : SUPER_ADMIN et AUDITOR) : audits `document.*`
+   * du document. La visibilité M9 s'applique ; un document invisible renvoie 404.
+   */
+  async getHistory(id: string, user: AuthenticatedUser): Promise<DocumentHistoryEntryDto[]> {
+    await this.findVisibleDocument(id, user);
+    const logs = await this.prisma.auditLog.findMany({
+      where: { resourceType: 'Document', resourceId: id, action: { startsWith: 'document.' } },
+      include: { actor: { select: { id: true, username: true } } },
+      orderBy: [{ timestamp: 'desc' }, { id: 'desc' }],
+      take: 100,
+    });
+    return logs.map((log) => ({
+      id: log.id,
+      action: log.action,
+      actor: log.actor,
+      sourceIp: log.sourceIp,
+      timestamp: log.timestamp.toISOString(),
+    }));
   }
 
   async getPermissions(id: string, user: AuthenticatedUser): Promise<DocumentPermissionResponseDto[]> {

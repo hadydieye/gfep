@@ -48,8 +48,9 @@ export class EmployeesController {
   create(
     @Body() dto: CreateEmployeeDto,
     @CurrentUser() user: AuthenticatedUser,
+    @Req() request: Request,
   ): Promise<EmployeeResponseDto> {
-    return this.employeesService.create(dto, user);
+    return this.employeesService.create(dto, user, request.ip ?? 'unknown');
   }
 
   @Patch(':id')
@@ -59,8 +60,9 @@ export class EmployeesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateEmployeeDto,
     @CurrentUser() user: AuthenticatedUser,
+    @Req() request: Request,
   ): Promise<EmployeeResponseDto> {
-    return this.employeesService.update(id, dto, user);
+    return this.employeesService.update(id, dto, user, request.ip ?? 'unknown');
   }
 
   // Report T2.4.R1 (M16) : suspension, sortie ou réactivation d'un employé

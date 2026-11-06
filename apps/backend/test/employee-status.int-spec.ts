@@ -155,7 +155,7 @@ describe('Changement de statut d’un employé (intégration)', () => {
     expect(created.status).toBe(201);
     const response = await patchStatus(sessions.hr, created.body.id, 'SUSPENDED');
     expect(response.status).toBe(200);
-    const log = await prisma.auditLog.findFirstOrThrow({ where: { resourceId: created.body.id } });
+    const log = await prisma.auditLog.findFirstOrThrow({ where: { resourceId: created.body.id, action: 'employee.status_change' } });
     expect(log.newValues).toEqual({ employmentStatus: 'SUSPENDED', revokedSessions: 0 });
   });
 });

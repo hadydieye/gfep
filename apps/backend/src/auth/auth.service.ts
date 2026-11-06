@@ -1,11 +1,12 @@
 import { randomBytes } from 'crypto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { AuthEventType, AuthProvider, NotificationType, Prisma, UserStatus } from '@prisma/client';
+import { AuthEventType, AuthProvider, NotificationType, Prisma, SecuritySeverity, UserStatus } from '@prisma/client';
 import * as argon2 from 'argon2';
 import type { CookieOptions, Request, Response } from 'express';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { IT_ADMINISTRATOR, SUPER_ADMIN } from '../rbac/roles.js';
+import { SECURITY_EVENT_TYPES, SecurityEventsService } from '../security/security-events.service.js';
 import {
   AuthenticatedUser,
   USER_AUTH_INCLUDE,
@@ -29,6 +30,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly securityEvents: SecurityEventsService,
   ) {}
 
   async login(dto: LoginDto, req: Request, res: Response): Promise<AuthResponseDto> {
@@ -139,8 +141,8 @@ export class AuthService {
 
     // I14 s'applique à tous les comptes, y compris le dernier SUPER_ADMIN actif (M17) :
     // le brute force reste démontrable. Chaque verrouillage alerte les IT_ADMINISTRATOR
-    // actifs (M19). Point d'appel prévu : SecurityEvent account_locked, HIGH pour un
-    // SUPER_ADMIN (étape 2.6).
+    // actifs (M19) et écrit un SecurityEvent account_locked, de sévérité HIGH pour le
+    // dernier SUPER_ADMIN actif (M17, M20), MEDIUM sinon.
     if (updated.failedLoginCount >= MAX_FAILED_LOGINS) {
       await this.prisma.$transaction(async (tx) => {
         const locked = await tx.user.update({
@@ -158,6 +160,34 @@ export class AuthService {
           select: { id: true },
         });
         const superAdmin = locked.userRoles.some(({ role }) => role.name === SUPER_ADMIN);
+        const otherActiveSuperAdmins = superAdmin
+          ? await tx.user.count({
+              where: {
+                id: { not: userId },
+                status: UserStatus.ACTIVE,
+                userRoles: { some: { role: { name: SUPER_ADMIN } } },
+              },
+            })
+          : 0;
+        const lastActiveSuperAdmin = superAdmin && otherActiveSuperAdmins === 0;
+        await this.securityEvents.record(
+          {
+            eventType: SECURITY_EVENT_TYPES.ACCOUNT_LOCKED,
+            severity: lastActiveSuperAdmin ? SecuritySeverity.HIGH : SecuritySeverity.MEDIUM,
+            source: 'auth',
+            description: lastActiveSuperAdmin
+              ? `Le dernier compte Super Admin actif « ${locked.username} » a été verrouillé après ${MAX_FAILED_LOGINS} échecs de connexion.`
+              : `Le compte « ${locked.username} » a été verrouillé après ${MAX_FAILED_LOGINS} échecs de connexion.`,
+            metadata: {
+              userId,
+              username: locked.username,
+              sourceIp,
+              failedLoginCount: updated.failedLoginCount,
+              lastActiveSuperAdmin,
+            },
+          },
+          tx,
+        );
         await this.notifications.notify(
           tx,
           itAdministrators.map(({ id }) => id),

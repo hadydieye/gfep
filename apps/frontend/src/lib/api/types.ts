@@ -65,7 +65,10 @@ export interface DashboardData {
     month?: string;
     pendingInvoicesTotal?: number;
   };
-  recentActivity: [];
+  /** SA et AUD : 5 derniers audits ; vide pour les autres rôles */
+  recentActivity: AuditLogItem[];
+  securityAlerts?: SecurityEventItem[];
+  recentSecurityEvents?: SecurityEventItem[];
   recentDocuments?: Array<{ id: string; title: string; createdAt: string }>;
   pendingDocuments?: Array<{ id: string; title: string; createdAt: string }>;
   recentTransactions?: Array<{
@@ -289,6 +292,61 @@ export interface PaginatedAccounts {
   total: number;
   page: number;
   limit: number;
+}
+
+export type SecuritySeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+export type AuthEventType =
+  | 'LOGIN_SUCCESS'
+  | 'LOGIN_FAILED'
+  | 'LOGOUT'
+  | 'ACCOUNT_LOCKED'
+  | 'AD_BIND_FAILED'
+  | 'AD_UNREACHABLE';
+
+export interface AuditLogItem {
+  id: string;
+  actor: { id: string; username: string };
+  action: string;
+  resourceType: string;
+  resourceId: string;
+  oldValues: unknown;
+  newValues: unknown;
+  sourceIp: string;
+  timestamp: string;
+}
+
+export interface SecurityEventItem {
+  id: string;
+  eventType: string;
+  severity: SecuritySeverity;
+  source: string;
+  description: string;
+  metadata: unknown;
+  timestamp: string;
+}
+
+export interface AuthEventItem {
+  id: string;
+  user: { id: string; username: string } | null;
+  authenticationMethod: AuthProvider;
+  eventType: AuthEventType;
+  sourceIp: string;
+  timestamp: string;
+}
+
+export interface Paginated<T> {
+  data: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface DocumentHistoryEntry {
+  id: string;
+  action: string;
+  actor: { id: string; username: string };
+  sourceIp: string;
+  timestamp: string;
 }
 
 export type ApiResult<T> =

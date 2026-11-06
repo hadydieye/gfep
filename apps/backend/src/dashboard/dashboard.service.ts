@@ -4,15 +4,18 @@ import {
   EmploymentStatus,
   InvoiceStatus,
   Prisma,
+  SecuritySeverity,
   TransactionStatus,
   TransactionType,
   UserStatus,
 } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
+import { AuditReadService } from '../audit/audit-read.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   ACCOUNTANT,
+  AUDITOR,
   DEPARTMENT_MANAGER,
   EMPLOYEE,
   HR_MANAGER,
@@ -29,6 +32,7 @@ export class DashboardService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly auditRead: AuditReadService,
   ) {}
 
   async getIndicators(user: AuthenticatedUser): Promise<DashboardResponseDto> {
@@ -97,11 +101,19 @@ export class DashboardService {
     const hr = role === HR_MANAGER ? await this.hrCards() : undefined;
     // EMPLOYEE : « Mes notifications » (AppFlow §5, design §7.3), 5 dernières
     const recentNotifications = role === EMPLOYEE ? await this.notifications.latest(user.id) : undefined;
+    // Étape 2.6 (design §8.4) : SA « Activité récente » ; AUD derniers audits et alertes HIGH/CRITICAL ;
+    // ITA événements de sécurité récents (M21 : sur le dashboard uniquement)
+    const recentActivity = role === SUPER_ADMIN || role === AUDITOR ? await this.auditRead.latestLogs() : [];
+    const securityAlerts =
+      role === AUDITOR ? await this.auditRead.latestSecurityEvents(5, [SecuritySeverity.HIGH, SecuritySeverity.CRITICAL]) : undefined;
+    const recentSecurityEvents = role === IT_ADMINISTRATOR ? await this.auditRead.latestSecurityEvents() : undefined;
 
     return {
       role,
       indicators,
-      recentActivity: [],
+      recentActivity,
+      ...(securityAlerts ? { securityAlerts } : {}),
+      ...(recentSecurityEvents ? { recentSecurityEvents } : {}),
       ...(finance
         ? { recentTransactions: finance.recentTransactions, pendingInvoices: finance.pendingInvoices }
         : {}),

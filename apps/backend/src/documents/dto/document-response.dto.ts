@@ -49,3 +49,10 @@ export class DocumentShareRecipientDto {
   username: string;
   displayName: string;
 }
+export interface DocumentHistoryEntryDto {
+  id: string;
+  action: string;
+  actor: { id: string; username: string };
+  sourceIp: string;
+  timestamp: string;
+}

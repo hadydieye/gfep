@@ -378,6 +378,34 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
 - PRD §4.9 et AppFlow §3.10, plus précis que le persona PRD §3, l'emportent : `/admin/audit` est réservé à l'AUDITOR (lecture) et au SUPER_ADMIN.
 - L'IT_ADMINISTRATOR voit les événements de sécurité récents **sur son dashboard uniquement** (AppFlow §5).
 
+### M33 — Mise en œuvre de l'étape 2.6 (2026-11-06)
+**Permissions (T2.6.1) :** `audit:read`, `security_events:read` et `documents:history` pour le SUPER_ADMIN et l'AUDITOR : 28 permissions, 107 liaisons rôle-permission.
+
+**Audit (T2.6.2) :**
+- `employee.create` (toutes les valeurs de la fiche) et `employee.update` (champs modifiés seulement, avant et après) sont écrits dans la transaction de l'action. Liste blanche Employee étendue aux champs de la fiche ; aucun secret.
+- R26.1 est couverte sauf `ad_mapping.*` (étape 2.7).
+
+**Événements de sécurité (T2.6.3) :**
+- `account_locked` est désormais aussi un `SecurityEvent` (jusqu'ici, seul l'`AuthEvent ACCOUNT_LOCKED` existait). Il est écrit dans la transaction du verrouillage, avec l'alerte `WARNING` aux ITA : `HIGH` pour le dernier SUPER_ADMIN actif, `MEDIUM` sinon, y compris pour un SUPER_ADMIN quand un autre SA reste actif (M20 à la lettre).
+- `repeated_forbidden` : filtre global (`APP_FILTER`) sur `ForbiddenException`, `MEDIUM`, source `rbac`. Le corps du 403 renvoyé est inchangé (corps natif de Nest). La dette du compteur en mémoire est déjà consignée (M20, ligne 3.3 de `PROGRESS.md`).
+- `ad_unreachable` : type prévu dans `SECURITY_EVENT_TYPES`, écrit à l'étape 2.7.
+
+**Endpoints (T2.6.4) :**
+- `/audit/logs`, `/audit/security-events`, `/audit/auth-events` : GET uniquement, SA et AUD ; l'ITA reçoit 403 (M21).
+- **(dérivé — à valider)** Filtres ajoutés à ceux de design §8.3 : `actor` et `user` (recherche partielle sur l'identifiant de connexion), car l'AUDITOR n'a pas `users:read` pour choisir un `actorId` ; `action` terminée par un point filtre une famille (`document.`) ; `resourceId`.
+- **(dérivé — à valider)** `/documents/:id/history` applique la visibilité de M9 : le SUPER_ADMIN voit tout, l'AUDITOR seulement les documents qu'il peut consulter (sinon 404, sans fuite). Les consultations de documents confidentiels restent visibles dans `/admin/audit`.
+
+**Interface (T2.6.5, T2.6.6) :**
+- `/admin/audit` : onglets Journal d'activité, Événements de sécurité (si `security_events:read`) et Authentifications, filtres (période, utilisateur, action ou type, sévérité), pagination par 25, panneau de détail avant/après. `/admin` redirige vers `/admin/audit`. Entrée « Audit » (`ScrollText`) pour `audit:read`.
+- `ui/tabs.tsx` : navigation au clavier (flèches, Début, Fin) ; l'onglet actif est souligné par un trait au token `link`.
+- Section « Historique de consultation » sur `/documents/[id]` pour `documents:history`.
+- Dashboards : SA « Activité récente » ; AUD « Derniers événements d'audit » et « Alertes de sécurité » (HIGH et CRITICAL), qui remplacent « Mes informations » ; ITA « Événements de sécurité récents », en plus de « État des services » (base de données, « Non configuré » pour le LDAP jusqu'en 2.7, depuis 2.4).
+- `/admin/settings` n'est pas livré : il relève de l'étape 3.2 (notes de `tasks.md`).
+
+**Tests :**
+- `test/audit.int-spec.ts` : matrice des 8 rôles, filtres, immutabilité (inventaire des routes d'écriture appelées sur un `AuditLog` existant, plus des tentatives directes PATCH, PUT, DELETE et POST → 404 ; contenu inchangé), `account_locked`, `repeated_forbidden` en horloge simulée, critère 2.6, et absence de secrets dans les logs (logger capturé), les journaux, les événements et les notifications lors des connexions.
+- `test/roles-matrix.int-spec.ts` : sonde `GET /audit/logs` ajoutée ; les 8 rôles ont désormais 8 comportements distincts sur les endpoints.
+
 ---
 
 ## 2.7 — Active Directory (LDAP de test)

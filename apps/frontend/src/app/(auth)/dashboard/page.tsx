@@ -11,6 +11,8 @@ import {
   LineChart,
   Receipt,
   ReceiptText,
+  ScrollText,
+  ShieldAlert,
   ShieldCheck,
   UserPlus,
   Users,
@@ -18,6 +20,7 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AccountStatusBadge } from '@/components/access/access-labels';
+import { SeverityBadge, auditActionLabel, formatAuditDate, securityEventLabel } from '@/components/audit/audit-labels';
 import { DashboardCard } from '@/components/dashboard/dashboard-card';
 import { HeadcountChart } from '@/components/dashboard/headcount-chart';
 import { ServiceStatusCard } from '@/components/dashboard/service-status-card';
@@ -49,7 +52,7 @@ export default async function DashboardPage() {
         {result.data.role === 'IT_ADMINISTRATOR' && <ItAdminCards data={result.data} />}
         {result.data.role === 'IT_TECHNICIAN' && result.data.services && <ServiceStatusCard services={result.data.services} />}
         {result.data.role === 'HR_MANAGER' && <HrCards data={result.data} />}
-        {result.data.role === 'AUDITOR' && <MyInfoCard user={user} />}
+        {result.data.role === 'AUDITOR' && <AuditorCards data={result.data} />}
         {result.data.role === 'ACCOUNTANT' && <AccountantCards data={result.data} />}
         {result.data.role === 'DEPARTMENT_MANAGER' && <ManagerCards data={result.data} />}
         {result.data.role === 'EMPLOYEE' && <EmployeeCards user={user} data={result.data} />}
@@ -70,6 +73,7 @@ function AdminCards({ data }: { data: DashboardData }) {
       />
       {data.services && <ServiceStatusCard services={data.services} />}
       {data.recentAccounts && <RecentAccountsCard accounts={data.recentAccounts} />}
+      <RecentActivityCard logs={data.recentActivity} label="Activité récente" />
       <DashboardCard label="Accès rapides" icon={Zap}>
         <ul className="flex flex-col gap-2 text-sm">
           <li>
@@ -98,7 +102,81 @@ function ItAdminCards({ data }: { data: DashboardData }) {
     <>
       {data.recentAccounts && <RecentAccountsCard accounts={data.recentAccounts} />}
       {data.services && <ServiceStatusCard services={data.services} />}
+      {/* M21 : l'ITA voit les événements de sécurité sur son dashboard uniquement */}
+      <SecurityEventsCard
+        label="Événements de sécurité récents"
+        events={data.recentSecurityEvents ?? []}
+        emptyMessage="Aucun événement de sécurité."
+      />
     </>
+  );
+}
+
+// AppFlow §5, design §8.4 : derniers audits et alertes de sécurité HIGH et CRITICAL
+function AuditorCards({ data }: { data: DashboardData }) {
+  return (
+    <>
+      <RecentActivityCard logs={data.recentActivity} label="Derniers événements d’audit" />
+      <SecurityEventsCard
+        label="Alertes de sécurité"
+        events={data.securityAlerts ?? []}
+        emptyMessage="Aucune alerte de sévérité élevée ou critique."
+      />
+    </>
+  );
+}
+
+function RecentActivityCard({ logs, label }: { logs: DashboardData['recentActivity']; label: string }) {
+  return (
+    <DashboardCard label={label} icon={ScrollText}>
+      {logs.length === 0 ? (
+        <p className="text-sm text-foreground-secondary">Aucune activité journalisée.</p>
+      ) : (
+        <ul className="flex flex-col gap-2 text-sm">
+          {logs.map((log) => (
+            <li key={log.id} className="flex flex-col">
+              <span className="truncate font-medium text-foreground-primary">{auditActionLabel(log.action)}</span>
+              <span className="text-xs text-foreground-secondary">
+                {log.actor.username} · {formatAuditDate(log.timestamp)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link href="/admin/audit" className="mt-1 text-sm font-medium text-link hover:underline">
+        Voir le journal d’audit
+      </Link>
+    </DashboardCard>
+  );
+}
+
+function SecurityEventsCard({
+  label,
+  events,
+  emptyMessage,
+}: {
+  label: string;
+  events: NonNullable<DashboardData['recentSecurityEvents']>;
+  emptyMessage: string;
+}) {
+  return (
+    <DashboardCard label={label} icon={ShieldAlert}>
+      {events.length === 0 ? (
+        <p className="text-sm text-foreground-secondary">{emptyMessage}</p>
+      ) : (
+        <ul className="flex flex-col gap-2 text-sm">
+          {events.map((event) => (
+            <li key={event.id} className="flex items-start justify-between gap-3">
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate font-medium text-foreground-primary">{securityEventLabel(event.eventType)}</span>
+                <span className="text-xs text-foreground-secondary">{formatAuditDate(event.timestamp)}</span>
+              </span>
+              <SeverityBadge severity={event.severity} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </DashboardCard>
   );
 }
 

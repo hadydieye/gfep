@@ -5,7 +5,7 @@ import * as argon2 from 'argon2';
 import { resetDatabase, runSeed, testPrisma } from './helpers.js';
 import { testStorageDir } from './setup/test-database.js';
 
-// Volumes après T2.5.1 (gfep-mvp2/DECISIONS.md M5, M24 : 25 permissions sur 30 à l'étape 2.5)
+// Volumes après T2.6.1 (gfep-mvp2/DECISIONS.md M5, M24 : 28 permissions sur 30 à l'étape 2.6)
 const EXPECTED_COUNTS = {
   departments: 6,
   positions: 18,
@@ -13,9 +13,9 @@ const EXPECTED_COUNTS = {
   users: 40,
   employeeIdentities: 40,
   roles: 8,
-  permissions: 25,
-  // SA 25, ITA 14, ITT 5, HR 12, ACC 13, DM 14, EMP 9, AUD 9
-  rolePermissions: 101,
+  permissions: 28,
+  // SA 28, ITA 14, ITT 5, HR 12, ACC 13, DM 14, EMP 9, AUD 12
+  rolePermissions: 107,
   userRoles: 40,
   documentCategories: 6,
   documents: 50,
@@ -24,14 +24,16 @@ const EXPECTED_COUNTS = {
   transactions: 100,
 };
 
-// Matrice exacte à l'étape 2.5 (design §2 limitée aux permissions existantes)
+// Matrice exacte à l'étape 2.6 (design §2 limitée aux permissions existantes)
 const READ_BASE = ['dashboard:read', 'departments:read', 'employees:read', 'notifications:read', 'notifications:update'];
 const DOCS = ['documents:delete', 'documents:read', 'documents:share', 'documents:write'];
 const ALL_PERMISSIONS = [
+  'audit:read',
   'dashboard:read',
   'departments:read',
   'departments:write',
   'documents:delete',
+  'documents:history',
   'documents:read',
   'documents:share',
   'documents:validate',
@@ -46,6 +48,7 @@ const ALL_PERMISSIONS = [
   'notifications:update',
   'roles:read',
   'roles:write',
+  'security_events:read',
   'transactions:read',
   'transactions:validate',
   'transactions:write',
@@ -70,7 +73,7 @@ const EXPECTED_MATRIX: Record<string, string[]> = {
     'transactions:read',
   ],
   EMPLOYEE: [...READ_BASE, ...DOCS],
-  AUDITOR: [...READ_BASE, ...DOCS],
+  AUDITOR: [...READ_BASE, ...DOCS, 'audit:read', 'documents:history', 'security_events:read'],
 };
 
 // Signatures de fichier attendues par type MIME
@@ -147,7 +150,7 @@ describe('Seed complet (intégration)', () => {
       expect(matrix[role], role).toEqual([...keys].sort());
       expect(new Set(matrix[role]).size, `${role} sans doublon`).toBe(matrix[role].length);
     }
-    // Catalogue : 25 permissions, chacune détenue par au moins un rôle (SUPER_ADMIN les détient toutes)
+    // Catalogue : 28 permissions, chacune détenue par au moins un rôle (SUPER_ADMIN les détient toutes)
     const catalog = (await prisma.permission.findMany()).map((p) => `${p.resource}:${p.action}`).sort();
     expect(catalog).toEqual(ALL_PERMISSIONS);
     const orphans = await prisma.permission.count({ where: { rolePermissions: { none: {} } } });
@@ -166,8 +169,16 @@ describe('Seed complet (intégration)', () => {
       ].sort();
     // M15 : ni documents, ni finance, ni accès
     expect(await resourcesOf('IT_TECHNICIAN')).toEqual(['dashboard', 'departments', 'employees', 'notifications']);
-    // Avant 2.6 : aucune permission d'audit ; ni finance, ni accès, ni écriture employé
-    expect(await resourcesOf('AUDITOR')).toEqual(['dashboard', 'departments', 'documents', 'employees', 'notifications']);
+    // Lecture d'audit (2.6) ; ni finance, ni accès, ni écriture employé
+    expect(await resourcesOf('AUDITOR')).toEqual([
+      'audit',
+      'dashboard',
+      'departments',
+      'documents',
+      'employees',
+      'notifications',
+      'security_events',
+    ]);
     expect(await resourcesOf('ACCOUNTANT')).toEqual([
       'dashboard',
       'departments',

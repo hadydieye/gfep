@@ -40,19 +40,21 @@ const PROBES = [
   { module: 'accès', label: 'GET /access/roles', method: 'GET', path: '/access/roles' },
   { module: 'accès', label: 'PUT /access/roles/:id/permissions', method: 'PUT', path: '/access/roles/:role/permissions' },
   { module: 'accès', label: 'PUT /access/users/:id/roles', method: 'PUT', path: '/access/users/:user/roles' },
+  // Étape 2.6 : audit réservé au SUPER_ADMIN et à l'AUDITOR (M21)
+  { module: 'audit', label: 'GET /audit/logs', method: 'GET', path: '/audit/logs' },
 ] as const;
 
 // Résultat attendu par rôle, dans l'ordre de PROBES (design §2, M15, M18, M21)
 const EXPECTED: Record<RoleKey, number[]> = {
-  //            dash emp  empW empS dep  doc  docV trx  trxW trxV inv  invS usr  rol  rolW usrR
-  admin: /*   */ [200, 200, 400, 400, 200, 200, 400, 200, 400, 400, 200, 400, 200, 200, 400, 400],
-  itAdmin: /* */ [200, 200, 403, 403, 200, 200, 403, 403, 403, 403, 403, 403, 200, 200, 403, 400],
-  itTech: /*  */ [200, 200, 403, 403, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403],
-  hr: /*      */ [200, 200, 400, 400, 200, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403],
-  accountant: [200, 200, 403, 403, 200, 200, 403, 200, 400, 403, 200, 400, 403, 403, 403, 403],
-  manager: /* */ [200, 200, 400, 400, 200, 200, 400, 200, 403, 403, 200, 403, 403, 403, 403, 403],
-  employee: /**/ [200, 200, 403, 403, 200, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403],
-  auditor: /* */ [200, 200, 403, 403, 200, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403],
+  //            dash emp  empW empS dep  doc  docV trx  trxW trxV inv  invS usr  rol  rolW usrR aud
+  admin: /*   */ [200, 200, 400, 400, 200, 200, 400, 200, 400, 400, 200, 400, 200, 200, 400, 400, 200],
+  itAdmin: /* */ [200, 200, 403, 403, 200, 200, 403, 403, 403, 403, 403, 403, 200, 200, 403, 400, 403],
+  itTech: /*  */ [200, 200, 403, 403, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403],
+  hr: /*      */ [200, 200, 400, 400, 200, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403],
+  accountant: [200, 200, 403, 403, 200, 200, 403, 200, 400, 403, 200, 400, 403, 403, 403, 403, 403],
+  manager: /* */ [200, 200, 400, 400, 200, 200, 400, 200, 403, 403, 200, 403, 403, 403, 403, 403, 403],
+  employee: /**/ [200, 200, 403, 403, 200, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403],
+  auditor: /* */ [200, 200, 403, 403, 200, 200, 403, 403, 403, 403, 403, 403, 403, 403, 403, 403, 200],
 };
 
 describe('Critère 2.4 : comportement distinct des 8 rôles (intégration)', () => {
@@ -114,7 +116,7 @@ describe('Critère 2.4 : comportement distinct des 8 rôles (intégration)', () 
     expect(table).toEqual(PROBES.map((p, i) => `${p.label} → ${EXPECTED[key][i]}`));
     // Au moins un endpoint de chaque module a été sondé
     expect(new Set(PROBES.map((p) => p.module))).toEqual(
-      new Set(['dashboard', 'employés', 'départements', 'documents', 'finance', 'accès']),
+      new Set(['dashboard', 'employés', 'départements', 'documents', 'finance', 'accès', 'audit']),
     );
   });
 
@@ -136,7 +138,7 @@ describe('Critère 2.4 : comportement distinct des 8 rôles (intégration)', () 
       ].sort();
 
     expect(signature(dashboards.admin)).toEqual(['indicators.totalEmployees', 'recentAccounts', 'services']);
-    expect(signature(dashboards.itAdmin)).toEqual(['recentAccounts', 'services']);
+    expect(signature(dashboards.itAdmin)).toEqual(['recentAccounts', 'recentSecurityEvents', 'services']);
     expect(signature(dashboards.itTech)).toEqual(['services']);
     expect(signature(dashboards.hr)).toEqual(['headcountByDepartment', 'indicators.totalEmployees', 'recentHires']);
     expect(signature(dashboards.accountant)).toEqual([
@@ -153,8 +155,8 @@ describe('Critère 2.4 : comportement distinct des 8 rôles (intégration)', () 
       'pendingDocuments',
     ]);
     expect(signature(dashboards.employee)).toEqual(['recentDocuments', 'recentNotifications']);
-    // AUDITOR : « Mes informations » côté interface jusqu'à l'étape 2.6, aucune donnée serveur
-    expect(signature(dashboards.auditor)).toEqual([]);
+    // AUDITOR (étape 2.6) : derniers audits (recentActivity) et alertes de sécurité HIGH/CRITICAL
+    expect(signature(dashboards.auditor)).toEqual(['securityAlerts']);
 
     expect(dashboards.admin.services).toEqual({ database: 'UP', ldap: 'NOT_CONFIGURED' });
     const headcount = dashboards.hr.headcountByDepartment as Array<{ code: string; count: number }>;
@@ -167,8 +169,7 @@ describe('Critère 2.4 : comportement distinct des 8 rôles (intégration)', () 
     const behaviours = (Object.keys(EXPECTED) as RoleKey[]).map((key) => `${ROLE_NAME[key]}:${results.get(key)?.join(',')}`);
     expect(results.size).toBe(8);
     const byStatuses = new Set((Object.keys(EXPECTED) as RoleKey[]).map((key) => results.get(key)!.join(',')));
-    // EMPLOYEE et AUDITOR ont les mêmes droits jusqu'à l'étape 2.6 ; leur dashboard les distingue (ci-dessus)
-    expect(byStatuses.size, behaviours.join('\n')).toBe(7);
-    expect(results.get('employee')).toEqual(results.get('auditor'));
+    // À partir de 2.6, l'audit distingue aussi EMPLOYEE et AUDITOR sur les endpoints
+    expect(byStatuses.size, behaviours.join('\n')).toBe(8);
   });
 });

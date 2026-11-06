@@ -1,4 +1,4 @@
-import { Building2, FileText, LayoutDashboard, ShieldCheck, Users, Wallet } from 'lucide-react';
+import { Building2, FileText, LayoutDashboard, ScrollText, ShieldCheck, Users, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 type Permissions = Array<{ resource: string; action: string }>;
@@ -46,6 +46,8 @@ const NAV_DEFINITIONS: Array<{
       { href: '/access/roles', label: 'Rôles', resource: 'roles' },
     ],
   },
+  // Étape 2.6 : journaux d'audit (SUPER_ADMIN, AUDITOR)
+  { href: '/admin/audit', label: 'Audit', icon: ScrollText, resource: 'audit' },
 ];
 
 const canRead = (permissions: Permissions, resource: string) =>

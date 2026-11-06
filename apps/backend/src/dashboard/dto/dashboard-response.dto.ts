@@ -1,3 +1,5 @@
+import type { AuditLogDto, SecurityEventDto } from '../../audit/dto/audit-response.dto.js';
+
 export interface DashboardAccountDto {
   id: string;
   username: string;
@@ -32,7 +34,11 @@ export class DashboardResponseDto {
   /** EMPLOYEE : 5 dernières notifications de l'utilisateur */
   recentNotifications?: Array<{ id: string; type: string; title: string; message: string; readAt: string | null; createdAt: string }>;
   recentHires?: Array<{ id: string; firstName: string; lastName: string; department: string; hireDate: string }>;
-  recentActivity: []; // vide en MVP 1, réservé pour MVP 2
+  /** SA et AUD : 5 derniers audits (étape 2.6) ; vide pour les autres rôles */
+  recentActivity: AuditLogDto[];
+  /** AUD : alertes de sécurité HIGH et CRITICAL ; ITA : événements de sécurité récents */
+  securityAlerts?: SecurityEventDto[];
+  recentSecurityEvents?: SecurityEventDto[];
   recentDocuments?: Array<{ id: string; title: string; createdAt: string }>;
   pendingDocuments?: Array<{ id: string; title: string; createdAt: string }>;
   recentTransactions?: Array<{

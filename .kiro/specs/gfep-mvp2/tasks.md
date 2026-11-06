@@ -309,42 +309,43 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
 
 ## Étape 2.6 — Administration et audit
 
-- [ ] T2.6.1 — Seed : permissions `audit:read` et `security_events:read` (SA, AUD), `documents:history` (SA, AUD)
+- [x] T2.6.1 — Seed : permissions `audit:read` et `security_events:read` (SA, AUD), `documents:history` (SA, AUD)
   - _→ M24_
-- [ ] T2.6.2 — Compléter l'audit des actions héritées du MVP 1
+- [x] T2.6.2 — Compléter l'audit des actions héritées du MVP 1
   - Création et modification d'employé.
   - Valeurs avant et après, sans secret.
   - _→ R26.1, M12_
-- [ ] T2.6.3 — `SecurityEventsService`
+- [x] T2.6.3 — `SecurityEventsService`
   - `account_locked` (dans `registerFailedAttempt` ; sévérité `HIGH` pour le dernier SUPER_ADMIN actif selon M17).
   - `ForbiddenAuditFilter` global pour `repeated_forbidden` (fenêtre glissante de 5 minutes, un seul événement par fenêtre).
   - _→ R27, M20_
-- [ ] T2.6.4 — Endpoints
+- [x] T2.6.4 — Endpoints
   - `/audit/logs`, `/audit/security-events`, `/audit/auth-events`, `/documents/:id/history`.
   - Filtres et pagination.
   - Aucune route d'écriture.
   - _→ R26.2, R28_
-- [ ] T2.6.5 — Écran `/admin/audit`
+- [x] T2.6.5 — Écran `/admin/audit`
   - `ui/tabs.tsx`, trois onglets, filtres, panneau de détail.
   - `/admin` redirige vers `/admin/audit`.
   - Entrée « Audit » dans la sidebar.
   - Historique sur `/documents/[id]`.
   - _→ R28.1–R28.4_
-- [ ] T2.6.6 — Dashboards
+- [x] T2.6.6 — Dashboards
   - SA : « Activité récente ».
   - AUD : derniers audits et alertes de sécurité.
   - ITA : événements de sécurité récents.
   - _→ R28.5, M25_
-- [ ] T2.6.7 — `test/audit.int-spec.ts`
+- [x] T2.6.7 — `test/audit.int-spec.ts`
   - Matrice (ITA → 403).
   - Filtres.
   - **Immutabilité prouvée** : inventaire des routes d'écriture (POST, PUT, PATCH, DELETE) ; aucune ne modifie ni ne supprime un `AuditLog` (nombre et contenu inchangés) ; seules des routes GET sous `/audit`.
   - `account_locked` et `repeated_forbidden` (horloge simulée), dont la sévérité `HIGH` pour le dernier SUPER_ADMIN actif.
   - Notification `WARNING` aux ITA pour chaque verrouillage, dont celui du dernier SUPER_ADMIN actif.
   - _→ T2, R26–R28, M21_
-- [ ] T2.6.8 — Critère de passage 2.6
+- [x] T2.6.8 — Critère de passage 2.6
   - Test automatisé : une action de chaque type de R26.1, réalisée via l'API, produit une entrée d'audit correspondante, sans champ secret.
-  - Validation manuelle utilisateur sur `/admin/audit` : ☐.
+  - Vérifié : `test/audit.int-spec.ts` (17 actions de R26.1 réalisées via l'API, chacune journalisée, consultable par l'AUDITOR, sans secret), et sur l'application compilée contre la base de dev (accès SA/AUD 200, ITA/EMP 403, onglets, dashboards, historique).
+  - Validation manuelle utilisateur sur `/admin/audit` : ☑ (confirmée par l'utilisateur le 2026-11-06).
   - `PROGRESS.md`.
   - _→ R29_
 

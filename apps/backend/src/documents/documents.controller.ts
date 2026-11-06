@@ -20,10 +20,11 @@ import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Permission } from '../rbac/decorators/permission.decorator.js';
 import { Roles } from '../rbac/decorators/roles.decorator.js';
-import { DOCUMENT_ROLES, DOCUMENT_VALIDATE_ROLES } from '../rbac/roles.js';
+import { AUDIT_ROLES, DOCUMENT_ROLES, DOCUMENT_VALIDATE_ROLES } from '../rbac/roles.js';
 import { CreateDocumentDto } from './dto/create-document.dto.js';
 import {
   DocumentCategoryDto,
+  DocumentHistoryEntryDto,
   DocumentPermissionResponseDto,
   DocumentResponseDto,
   DocumentShareRecipientDto,
@@ -66,6 +67,17 @@ export class DocumentsController {
     @Req() request: Request,
   ): Promise<DocumentResponseDto> {
     return this.documentsService.findOne(id, user, request.ip ?? 'unknown');
+  }
+
+  // Historique de consultation (R28.4) : SUPER_ADMIN et AUDITOR (M24)
+  @Get(':id/history')
+  @Roles(...AUDIT_ROLES)
+  @Permission('documents', 'history')
+  getHistory(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<DocumentHistoryEntryDto[]> {
+    return this.documentsService.getHistory(id, user);
   }
 
   @Get(':id/download')

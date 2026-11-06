@@ -41,6 +41,8 @@ export const FINANCE_READ_ROLES = [SUPER_ADMIN, ACCOUNTANT, DEPARTMENT_MANAGER] 
 export const FINANCE_WRITE_ROLES = [SUPER_ADMIN, ACCOUNTANT] as const;
 // Accès : SA et ITA (rôles en lecture seule pour l'ITA, M18)
 export const ACCESS_ROLES = [SUPER_ADMIN, IT_ADMINISTRATOR] as const;
+// Audit et historique de consultation : SA et AUD, pas l'ITA (M21, M24)
+export const AUDIT_ROLES = [SUPER_ADMIN, AUDITOR] as const;
 
 // Libellés français des rôles (notifications), alignés sur l'interface
 export const ROLE_LABELS: Record<string, string> = {
