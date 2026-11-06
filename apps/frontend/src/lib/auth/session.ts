@@ -19,10 +19,18 @@ export function hasPermission(user: AuthUser, resource: string, action: string):
   return user.permissions.some((p) => p.resource === resource && p.action === action);
 }
 
-// Rôle le plus élevé, aligné sur le scoping backend
+// Ordre de priorité aligné sur le backend (rbac/roles.ts) : détermine le dashboard
+const ROLE_PRIORITY: RoleName[] = [
+  'SUPER_ADMIN',
+  'IT_ADMINISTRATOR',
+  'HR_MANAGER',
+  'ACCOUNTANT',
+  'DEPARTMENT_MANAGER',
+  'AUDITOR',
+  'IT_TECHNICIAN',
+  'EMPLOYEE',
+];
+
 export function primaryRole(user: AuthUser): RoleName {
-  if (hasRole(user, 'SUPER_ADMIN')) return 'SUPER_ADMIN';
-  if (hasRole(user, 'ACCOUNTANT')) return 'ACCOUNTANT';
-  if (hasRole(user, 'DEPARTMENT_MANAGER')) return 'DEPARTMENT_MANAGER';
-  return 'EMPLOYEE';
+  return ROLE_PRIORITY.find((role) => hasRole(user, role)) ?? 'EMPLOYEE';
 }

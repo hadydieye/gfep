@@ -45,7 +45,7 @@ describe('Authentification (intégration)', () => {
     const response = await login(app, CREDENTIALS.admin);
 
     expect(response.status).toBe(200);
-    expect(response.body.username).toBe('m.keita');
+    expect(response.body.username).toBe(CREDENTIALS.admin.username);
     expect(response.body.roles.map((r: { name: string }) => r.name)).toEqual(['SUPER_ADMIN']);
 
     const cookie = setCookieFrom(response)!;
@@ -57,7 +57,7 @@ describe('Authentification (intégration)', () => {
     expect(attributes).toContain(`max-age=${EIGHT_HOURS_MS / 1000}`);
 
     const session = await prisma.session.findFirstOrThrow({
-      where: { user: { username: 'm.keita' } },
+      where: { user: { username: CREDENTIALS.admin.username } },
       orderBy: { createdAt: 'desc' },
     });
     const ttl = session.expiresAt.getTime() - before;
@@ -66,7 +66,7 @@ describe('Authentification (intégration)', () => {
   });
 
   it('mauvais mot de passe et utilisateur inconnu : même 401 et même message générique', async () => {
-    const wrongPassword = await login(app, { username: 'm.keita', password: 'mauvais' });
+    const wrongPassword = await login(app, { username: CREDENTIALS.admin.username, password: 'mauvais' });
     const unknownUser = await login(app, { username: 'inconnu', password: 'mauvais' });
 
     expect(wrongPassword.status).toBe(401);
@@ -140,7 +140,7 @@ describe('Authentification (intégration)', () => {
 
   describe('sessions invalides', () => {
     const insertSession = async (data: { expiresAt: Date; revokedAt?: Date }) => {
-      const user = await prisma.user.findUniqueOrThrow({ where: { username: 'm.keita' } });
+      const user = await prisma.user.findUniqueOrThrow({ where: { username: CREDENTIALS.admin.username } });
       const token = randomBytes(48).toString('hex');
       await prisma.session.create({
         data: {

@@ -116,6 +116,10 @@ export class AuthService {
     });
     await this.authEvent(userId, AuthEventType.LOGIN_FAILED, sourceIp);
 
+    // I14 s'applique à tous les comptes, y compris le dernier SUPER_ADMIN actif (M17) :
+    // le brute force reste démontrable. Points d'appel prévus pour ce verrouillage :
+    // notification WARNING aux IT_ADMINISTRATOR actifs (étape 2.5) et SecurityEvent
+    // account_locked, de sévérité HIGH pour un SUPER_ADMIN (étape 2.6).
     if (updated.failedLoginCount >= MAX_FAILED_LOGINS) {
       await this.prisma.$transaction([
         this.prisma.user.update({

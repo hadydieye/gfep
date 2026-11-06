@@ -34,15 +34,21 @@ describe('RBAC et validation (intégration)', () => {
       manager: await sessionCookie(app, CREDENTIALS.manager),
       employee: await sessionCookie(app, CREDENTIALS.employee),
     };
+    // Département du DEPARTMENT_MANAGER a.barry : Audit et conformité (M5, étape 2.4)
     const rh = await prisma.department.findUniqueOrThrow({
-      where: { code: 'RH' },
+      where: { code: 'AC' },
       include: { positions: true },
     });
     const it = await prisma.department.findUniqueOrThrow({ where: { code: 'IT' } });
     ids = {
       rhDepartment: rh.id,
       rhPosition: rh.positions[0].id,
-      rhEmployee: (await prisma.employee.findUniqueOrThrow({ where: { employeeNumber: 'GF-2026-001' } })).id,
+      rhEmployee: (
+        await prisma.employee.findFirstOrThrow({
+          where: { departmentId: rh.id, employeeNumber: { not: 'GF-2026-005' } },
+          orderBy: { employeeNumber: 'asc' },
+        })
+      ).id,
       itEmployee: (await prisma.employee.findUniqueOrThrow({ where: { employeeNumber: 'GF-2026-003' } })).id,
       itDepartment: it.id,
     };
@@ -92,7 +98,7 @@ describe('RBAC et validation (intégration)', () => {
     });
   });
 
-  describe('DEPARTMENT_MANAGER (RH)', () => {
+  describe('DEPARTMENT_MANAGER (AC)', () => {
     it('modification autorisée dans son département', async () => {
       const response = await patch(cookies.manager, ids.rhEmployee, { phone: '+224620000002' });
       expect(response.status).toBe(200);

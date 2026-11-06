@@ -44,14 +44,18 @@ describe('Documents (intégration)', () => {
       admin: await sessionCookie(app, CREDENTIALS.admin),
       manager: await sessionCookie(app, CREDENTIALS.manager),
       employeeCf: await sessionCookie(app, CREDENTIALS.employee),
-      employeeDg: await sessionCookie(app, { username: 't.balde', password: 'GF_Emp2026!' }),
+      employeeDg: await sessionCookie(app, { username: 'm.sylla', password: 'GF_Emp2026!' }), // EMPLOYEE, Direction générale
     };
     const records = await Promise.all(
-      ['CF', 'RH', 'IT', 'DG'].map(async (code) => {
+      ['CF', 'RH', 'IT', 'DG', 'AC'].map(async (code) => {
         const department = await prisma.department.findUniqueOrThrow({ where: { code } });
         const category = await prisma.documentCategory.findFirstOrThrow({ where: { departmentId: department.id } });
+        // Premier employé du département titulaire du seul rôle EMPLOYEE (étape 2.4 : t.balde est SUPER_ADMIN)
         const employee = await prisma.employee.findFirstOrThrow({
-          where: { departmentId: department.id },
+          where: {
+            departmentId: department.id,
+            identity: { is: { user: { userRoles: { every: { role: { name: 'EMPLOYEE' } } } } } },
+          },
           orderBy: { employeeNumber: 'asc' },
           include: { identity: true },
         });
@@ -154,9 +158,9 @@ describe('Documents (intégration)', () => {
         expect((await get(`/documents/${publicDocument.id}/download`, cookie)).status).toBe(200);
         expect((await get(`/documents/${publicDocument.id}/preview`, cookie)).status).toBe(200);
       }
-      const validationTarget = await createRecord({ category: 'RH', owner: 'CF' });
+      const validationTarget = await createRecord({ category: 'AC', owner: 'CF' });
       expect((await callRoute('PATCH', `/documents/${validationTarget.id}/validation`, sessions.admin, { status: 'VALIDATED' })).status).toBe(200);
-      const secondTarget = await createRecord({ category: 'RH', owner: 'CF' });
+      const secondTarget = await createRecord({ category: 'AC', owner: 'CF' });
       expect((await callRoute('PATCH', `/documents/${secondTarget.id}/validation`, sessions.manager, { status: 'VALIDATED' })).status).toBe(200);
       expect((await callRoute('PATCH', `/documents/${secondTarget.id}/validation`, sessions.employeeCf, { status: 'REJECTED' })).status).toBe(403);
       expect((await callRoute('PATCH', `/documents/${secondTarget.id}/validation`, sessions.employeeDg, { status: 'REJECTED' })).status).toBe(403);
@@ -296,10 +300,11 @@ describe('Documents (intégration)', () => {
 
   describe('validation', () => {
     it('permet au manager du département de valider, interdit son document propre et audite la décision', async () => {
-      const rh = departments.get('RH')!;
+      // DEPARTMENT_MANAGER a.barry : département Audit et conformité (M5, étape 2.4)
+      const rh = departments.get('AC')!;
       const document = await prisma.document.create({
         data: {
-          title: `Validation RH ${randomUUID()}`,
+          title: `Validation AC ${randomUUID()}`,
           categoryId: rh.categoryId,
           ownerId: departments.get('CF')!.employeeId,
           storagePath: await writeDocumentFile(PDF),
@@ -322,7 +327,7 @@ describe('Documents (intégration)', () => {
           .send({ status: 'REJECTED' })).status,
       ).toBe(409);
 
-      const own = await prisma.employee.findUniqueOrThrow({ where: { professionalEmail: 'f.camara@guineasf.com' } });
+      const own = await prisma.employee.findUniqueOrThrow({ where: { professionalEmail: 'a.barry@guineasf.com' } });
       const ownDocument = await prisma.document.create({
         data: {
           title: `Document propre ${randomUUID()}`,

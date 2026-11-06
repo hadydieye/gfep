@@ -619,9 +619,9 @@ Ce plan couvre le nettoyage de la fondation (Lot 0) puis les cinq étapes foncti
 
 > Suivies dans `.kiro/specs/gfep-mvp2/tasks.md` : T2.4.R1 → T2.4.5 et T2.4.6 ; T2.4.R2 → T2.4.9.
 
-- [ ] T2.4.R1 — Endpoint de changement de statut employé + activation du bouton « Suspendre », avec tests par rôle
+- [x] T2.4.R1 — Endpoint de changement de statut employé + activation du bouton « Suspendre », avec tests par rôle
   - Le bouton est affiché désactivé en MVP 1 (DECISIONS.md I19)
-- [ ] T2.4.R2 — Déverrouillage manuel d'un compte par Super Admin
+- [x] T2.4.R2 — Déverrouillage manuel d'un compte par Super Admin
   - Complète le déverrouillage automatique après 15 minutes (DECISIONS.md I14)
 
 ---

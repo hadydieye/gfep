@@ -130,16 +130,82 @@ const FINANCE_PERMISSION_KEYS = FINANCE_PERMISSION_SEEDS.map(
   ({ resource, action }) => `${resource}:${action}`,
 );
 
-const ACCOUNTANT_ROLE = {
-  name: 'ACCOUNTANT',
-  description: 'Comptable — gestion des transactions et des factures',
-} as const;
+// Étape 2.4 : permissions d'accès et changement de statut employé (M16, M17, M18, M24)
+const ACCESS_PERMISSION_SEEDS = [
+  { resource: 'employees', action: 'status', description: 'Suspendre, réactiver ou faire sortir un employé' },
+  { resource: 'roles', action: 'read', description: 'Consulter les rôles et leurs permissions' },
+  { resource: 'roles', action: 'write', description: 'Modifier les permissions d’un rôle' },
+  { resource: 'users', action: 'read', description: 'Consulter les comptes applicatifs' },
+  { resource: 'users', action: 'assign_role', description: 'Attribuer ou retirer des rôles' },
+  { resource: 'users', action: 'suspend', description: 'Suspendre ou réactiver un compte' },
+  { resource: 'users', action: 'unlock', description: 'Déverrouiller un compte verrouillé' },
+] as const;
 
-// Rôles à l'étape 2.3 (M3, M5, M6) : m.keita SA, f.camara DM, ibrahima.sow ACC, les autres EMP
+const PERMISSION_SEEDS = [
+  ...MVP1_DATA.permissions,
+  ...DOCUMENT_PERMISSION_SEEDS,
+  ...FINANCE_PERMISSION_SEEDS,
+  ...ACCESS_PERMISSION_SEEDS,
+];
+
+// Les 8 rôles (M5, M6, M15) : 3 rôles MVP 1, ACCOUNTANT (2.3), 4 rôles ajoutés en 2.4
+const ROLE_SEEDS = [
+  ...MVP1_DATA.roles,
+  { name: 'ACCOUNTANT', description: 'Comptable — gestion des transactions et des factures' },
+  { name: 'IT_ADMINISTRATOR', description: 'Administrateur informatique — comptes, rôles et déverrouillage' },
+  { name: 'IT_TECHNICIAN', description: 'Technicien informatique — consultation des employés et départements' },
+  { name: 'HR_MANAGER', description: 'Responsable RH — gestion des fiches employés de tous les départements' },
+  { name: 'AUDITOR', description: 'Auditeur — consultation, journaux d’audit à partir de l’étape 2.6' },
+];
+
+const READ_BASE = ['dashboard:read', 'employees:read', 'departments:read'];
+const DOCUMENTS_NO_VALIDATE = DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate');
+
+/**
+ * Matrice rôle → permissions à l'étape 2.4 (design §2, limitée aux permissions qui
+ * existent : 23 sur 30, M24). Le SUPER_ADMIN détient toujours toutes les permissions (M18).
+ */
+export const ROLE_PERMISSIONS: Record<string, readonly string[]> = {
+  SUPER_ADMIN: PERMISSION_SEEDS.map(({ resource, action }) => `${resource}:${action}`),
+  IT_ADMINISTRATOR: [
+    ...READ_BASE,
+    ...DOCUMENTS_NO_VALIDATE,
+    'roles:read',
+    'users:read',
+    'users:assign_role',
+    'users:suspend',
+    'users:unlock',
+  ],
+  // M15 : lecture seule employés et départements ; ni documents, ni finance, ni accès
+  IT_TECHNICIAN: [...READ_BASE],
+  HR_MANAGER: [...READ_BASE, 'employees:write', 'employees:status', 'departments:write', ...DOCUMENTS_NO_VALIDATE],
+  ACCOUNTANT: [
+    ...READ_BASE,
+    ...DOCUMENTS_NO_VALIDATE,
+    ...FINANCE_PERMISSION_KEYS.filter((key) => key !== 'transactions:validate'),
+  ],
+  DEPARTMENT_MANAGER: [
+    ...READ_BASE,
+    'employees:write',
+    'employees:status',
+    ...DOCUMENT_PERMISSION_KEYS,
+    'transactions:read',
+    'invoices:read',
+  ],
+  EMPLOYEE: [...READ_BASE, ...DOCUMENTS_NO_VALIDATE],
+  // Avant 2.6 : aucune permission d'audit n'existe encore (audit:read, security_events:read)
+  AUDITOR: [...READ_BASE, ...DOCUMENTS_NO_VALIDATE],
+};
+
+// Comptes à l'étape 2.4 (M5) ; les autres comptes sont EMPLOYEE
 const ROLE_BY_USERNAME: Record<string, string> = {
-  'm.keita': 'SUPER_ADMIN',
-  'f.camara': 'DEPARTMENT_MANAGER',
+  't.balde': 'SUPER_ADMIN',
+  'm.keita': 'IT_ADMINISTRATOR',
+  'f.camara': 'HR_MANAGER',
+  'a.barry': 'DEPARTMENT_MANAGER',
   'ibrahima.sow': 'ACCOUNTANT',
+  's.toure': 'AUDITOR',
+  'f.kaba': 'IT_TECHNICIAN',
 };
 
 // Identifiant = partie locale de l'e-mail professionnel (`initiale.nom`, ou `prenom.nom` en cas
@@ -151,32 +217,9 @@ export const USERS: UserSeed[] = EMPLOYEES.map((e) => {
 
 export const ORGANISATION: OrganisationDataset = {
   ...MVP1_DATA,
-  roles: [...MVP1_DATA.roles, ACCOUNTANT_ROLE],
-  permissions: [...MVP1_DATA.permissions, ...DOCUMENT_PERMISSION_SEEDS, ...FINANCE_PERMISSION_SEEDS],
-  rolePermissions: {
-    ...MVP1_DATA.rolePermissions,
-    SUPER_ADMIN: [
-      ...MVP1_DATA.rolePermissions.SUPER_ADMIN,
-      ...DOCUMENT_PERMISSION_KEYS,
-      ...FINANCE_PERMISSION_KEYS,
-    ],
-    DEPARTMENT_MANAGER: [
-      ...MVP1_DATA.rolePermissions.DEPARTMENT_MANAGER,
-      ...DOCUMENT_PERMISSION_KEYS,
-      'transactions:read',
-      'invoices:read',
-    ],
-    // Matrice finale (design §2) : lecture employés et départements, documents, finance sans validation
-    ACCOUNTANT: [
-      ...MVP1_DATA.rolePermissions.EMPLOYEE,
-      ...DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate'),
-      ...FINANCE_PERMISSION_KEYS.filter((key) => key !== 'transactions:validate'),
-    ],
-    EMPLOYEE: [
-      ...MVP1_DATA.rolePermissions.EMPLOYEE,
-      ...DOCUMENT_PERMISSION_KEYS.filter((key) => key !== 'documents:validate'),
-    ],
-  },
+  roles: ROLE_SEEDS,
+  permissions: PERMISSION_SEEDS,
+  rolePermissions: ROLE_PERMISSIONS,
   positions: POSITIONS,
   employees: EMPLOYEES,
   departmentManagers: DEPARTMENT_HEADS,

@@ -200,56 +200,56 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
 
 ## Étape 2.4 — RBAC complet (8 rôles)
 
-- [ ] T2.4.1 — Seed : rôles IT_ADMINISTRATOR, IT_TECHNICIAN, HR_MANAGER, AUDITOR
+- [x] T2.4.1 — Seed : rôles IT_ADMINISTRATOR, IT_TECHNICIAN, HR_MANAGER, AUDITOR
   - Permissions `employees:status`, `roles:*` et `users:*`.
   - Matrice complète de design §2.
   - `SEED_PASSWORD_*` correspondants.
   - _→ R16.1, M5, M24_
-- [ ] T2.4.2 — Seed : réattribution des comptes (M5)
+- [x] T2.4.2 — Seed : réattribution des comptes (M5)
   - `t.balde` SA, `m.keita` ITA, `f.camara` HR, `a.barry` DM, `s.toure` AUD, `f.kaba` ITT.
   - L'ancien rôle est retiré à chaque fois.
   - _→ R16.2, M5_
-- [ ] T2.4.3 — Constantes de rôles et mise à jour des `@Roles` de toutes les routes existantes
+- [x] T2.4.3 — Constantes de rôles et mise à jour des `@Roles` de toutes les routes existantes
   - Routes : dashboard, employees, departments, documents, finance.
   - Selon la matrice.
   - _→ R16.3_
-- [ ] T2.4.4 — Mettre à jour les tests MVP 1 (Q3)
+- [x] T2.4.4 — Mettre à jour les tests MVP 1 (Q3)
   - `CREDENTIALS` dans `helpers.ts` : SA = `t.balde`, DM = `a.barry` (AC), plus les 5 nouveaux rôles.
   - Fichiers : `rbac`, `modules`, `lockout`, `employee-number`, `validation`.
   - Changements consignés dans `PROGRESS.md`.
   - _→ R16.4, M5_
-- [ ] T2.4.5 — **Report T2.4.R1 (backend)** : `PATCH /employees/:id/status`
+- [x] T2.4.5 — **Report T2.4.R1 (backend)** : `PATCH /employees/:id/status`
   - Scope DM ; pas soi-même.
   - Transaction : employé + `User` `SUSPENDED` + sessions révoquées + audit.
   - La réactivation ne concerne que la fiche employé.
   - _→ R17.1–R17.4, M16_
-- [ ] T2.4.6 — **Report T2.4.R1 (frontend)** : boutons « Suspendre » et « Réactiver » sur `/employees/[id]`
+- [x] T2.4.6 — **Report T2.4.R1 (frontend)** : boutons « Suspendre » et « Réactiver » sur `/employees/[id]`
   - `ConfirmDialog` destructif, avec l'option « Sortie définitive ».
   - Toasts ; rendu selon `canChangeStatus`.
   - _→ R17.5_
-- [ ] T2.4.7 — Module `access/` : rôles
+- [x] T2.4.7 — Module `access/` : rôles
   - Liste, détail.
   - `PUT /access/roles/:id/permissions` réservé au SA, avec les garde-fous de M18.
   - Audit.
   - Point d'appel de notification (sans effet avant 2.5).
   - _→ R19, M18_
-- [ ] T2.4.8 — Module `access/` : comptes
+- [x] T2.4.8 — Module `access/` : comptes
   - Liste, attribution de rôles, suspension et réactivation.
   - Garde-fous de M17 ; compte AD → 409 ; audits.
   - **Dernier SA actif** : ni suspendu, ni réactivé, ni rétrogradé par un tiers (403).
   - _→ R18.1–R18.5, M17_
-- [ ] T2.4.9 — **Report T2.4.R2** : `POST /access/users/:id/unlock`
+- [x] T2.4.9 — **Report T2.4.R2** : `POST /access/users/:id/unlock`
   - `LOCKED` uniquement.
   - `ACTIVE` et `failedLoginCount = 0`.
   - Garde-fous de M17 ; audit `user.unlock`.
   - Le verrouillage automatique du dernier SA actif suit I14 ; le déverrouillage manuel via cet endpoint ne s'applique pas à ce compte. Sa récupération est l'expiration après 15 minutes ou le seed de développement ; aucun script CLI n'est prévu.
   - Prévoir l'alerte `WARNING` aux ITA actifs (effective en 2.5) et le `SecurityEvent account_locked` de sévérité `HIGH` (effectif en 2.6) à chaque verrouillage de ce compte.
   - _→ R18.1, R18.5, M17, I14_
-- [ ] T2.4.10 — Écrans `/access/users`, `/access/roles`, `/access/roles/[id]`
+- [x] T2.4.10 — Écrans `/access/users`, `/access/roles`, `/access/roles/[id]`
   - `ui/checkbox.tsx` et `AccountStatusBadge`.
   - Entrée « Accès » dans la sidebar.
   - _→ R20_
-- [ ] T2.4.11 — Dashboards par rôle
+- [x] T2.4.11 — Dashboards par rôle
   - HR : effectif, répartition (Recharts), dernières embauches.
   - ITA : comptes récents, état des services.
   - ITT : état des services.
@@ -257,14 +257,14 @@ Le plan suit l'ordre exact de `06-Implementation-Plan.md`. Une étape ne commenc
   - AUD : « Mes informations » jusqu'en 2.6.
   - Composant `ServiceStatusCard`.
   - _→ R16.5, M15, M20, M25_
-- [ ] T2.4.12 — Tests
+- [x] T2.4.12 — Tests
   - `access.int-spec.ts` : matrice et **un test par garde-fou** de M17 et M18 ; déverrouillage ; la suspension révoque les sessions.
   - `employee-status.int-spec.ts` : atomicité, scope DM, soi-même, réactivation.
   - `last-admin.int-spec.ts` : dernier SA actif non suspendu ni rétrogradé par un tiers ; verrouillé au cinquième échec consécutif, puis déverrouillé à l'expiration de 15 minutes ; rate limiting par IP toujours actif ; le verrouillage s'applique aussi s'il existe plusieurs SA actifs.
   - _→ T2, R17–R19_
-- [ ] T2.4.13 — Critère de passage 2.4
-  - `test/roles-matrix.int-spec.ts` : pour chacun des 8 rôles, au moins un endpoint représentatif par module (dashboard, employés, départements, documents, finance, accès), avec le résultat attendu, et le contenu du dashboard propre au rôle.
-  - Validation manuelle utilisateur : ☐.
+- [x] T2.4.13 — Critère de passage 2.4
+  - `test/roles-matrix.int-spec.ts` : pour chacun des 8 rôles, au moins un endpoint représentatif par module (dashboard, employés, départements, documents, finance, accès), avec le résultat attendu, et le contenu du dashboard propre au rôle. Vérifié (10 tests), et contrôle sur l'application compilée contre la base de dev avec les 8 comptes (API et rendu serveur).
+  - Validation manuelle utilisateur : ☑ (confirmée par l'utilisateur le 2026-11-06).
   - `PROGRESS.md`.
   - _→ R21_
 

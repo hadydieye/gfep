@@ -3,7 +3,7 @@
  * `npx prisma db seed`. Étend le jeu MVP 1 sans doublon : 6 départements,
  * 18 postes, 40 employés, 40 comptes locaux, 6 catégories, 50 documents avec
  * fichiers réels, 30 factures et 100 transactions rattachées à un département.
- * Rôles : les 3 rôles MVP 1 et ACCOUNTANT (étape 2.3) ; les 4 autres en 2.4.
+ * Rôles : les 8 rôles et la matrice de l'étape 2.4 (23 permissions, M24).
  *
  * Idempotent. Réservé au développement : refuse NODE_ENV=production. Les mots
  * de passe de démonstration (SEED_PASSWORD_<ROLE>) ne sont jamais loggés.
@@ -76,7 +76,7 @@ async function seedDocuments(prisma: PrismaClient, org: SeededOrganisation) {
 }
 
 async function seedFinance(prisma: PrismaClient, org: SeededOrganisation) {
-  const createdBy = org.userIds.get('m.keita')!;
+  const createdBy = org.userIds.get('t.balde')!;
   for (const i of INVOICES) {
     const fields = {
       clientName: i.clientName,

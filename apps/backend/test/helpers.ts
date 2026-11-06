@@ -10,10 +10,16 @@ import { assertTestDatabaseUrl, backendRoot } from './setup/test-database.js';
 
 export const SESSION_COOKIE = 'gfep_session';
 
+// Comptes du seed complet à partir de l'étape 2.4 (gfep-mvp2/DECISIONS.md M5, Q3)
 export const CREDENTIALS = {
-  admin: { username: 'm.keita', password: 'GF_Admin2026!' },
-  manager: { username: 'f.camara', password: 'GF_Mgr2026!' },
-  employee: { username: 'm.diallo', password: 'GF_Emp2026!' },
+  admin: { username: 't.balde', password: 'GF_Admin2026!' }, // SUPER_ADMIN (Direction)
+  manager: { username: 'a.barry', password: 'GF_Mgr2026!' }, // DEPARTMENT_MANAGER (AC)
+  employee: { username: 'm.diallo', password: 'GF_Emp2026!' }, // EMPLOYEE (CF)
+  itAdmin: { username: 'm.keita', password: 'GF_ItAdmin2026!' }, // IT_ADMINISTRATOR
+  itTech: { username: 'f.kaba', password: 'GF_ItTech2026!' }, // IT_TECHNICIAN
+  hr: { username: 'f.camara', password: 'GF_Hr2026!' }, // HR_MANAGER
+  accountant: { username: 'ibrahima.sow', password: 'GF_Acc2026!' }, // ACCOUNTANT
+  auditor: { username: 's.toure', password: 'GF_Audit2026!' }, // AUDITOR
 } as const;
 
 /** Client Prisma de test : refuse de se connecter à une base non suffixée _test. */

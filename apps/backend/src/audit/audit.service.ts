@@ -14,6 +14,9 @@ const AUDIT_FIELDS: Record<string, readonly string[]> = {
   DocumentPermission: ['documentId', 'userId', 'permission'],
   Transaction: ['reference', 'transactionType', 'amount', 'currency', 'status', 'departmentId'],
   Invoice: ['invoiceNumber', 'status', 'departmentId'],
+  Employee: ['employmentStatus', 'accountStatus', 'revokedSessions'],
+  User: ['username', 'role', 'roles', 'status', 'failedLoginCount', 'revokedSessions'],
+  Role: ['name', 'permissions'],
 };
 
 export interface AuditEntry {

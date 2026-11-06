@@ -8,7 +8,18 @@ export type TransactionType = 'INCOME' | 'EXPENSE';
 export type TransactionStatus = 'PENDING' | 'VALIDATED' | 'REJECTED';
 export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED';
 
-export type RoleName = 'SUPER_ADMIN' | 'DEPARTMENT_MANAGER' | 'ACCOUNTANT' | 'EMPLOYEE';
+export type RoleName =
+  | 'SUPER_ADMIN'
+  | 'IT_ADMINISTRATOR'
+  | 'IT_TECHNICIAN'
+  | 'HR_MANAGER'
+  | 'ACCOUNTANT'
+  | 'DEPARTMENT_MANAGER'
+  | 'EMPLOYEE'
+  | 'AUDITOR';
+
+export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'LOCKED';
+export type AuthProvider = 'LOCAL' | 'ACTIVE_DIRECTORY';
 
 export interface AuthUser {
   id: string;
@@ -58,6 +69,18 @@ export interface DashboardData {
     dueDate: string;
     status: InvoiceStatus;
   }>;
+  services?: { database: 'UP' | 'DOWN'; ldap: 'NOT_CONFIGURED' };
+  recentAccounts?: { created: DashboardAccount[]; suspended: DashboardAccount[] };
+  headcountByDepartment?: Array<{ code: string; name: string; count: number }>;
+  recentHires?: Array<{ id: string; firstName: string; lastName: string; department: string; hireDate: string }>;
+}
+
+export interface DashboardAccount {
+  id: string;
+  username: string;
+  displayName: string | null;
+  status: UserStatus;
+  date: string;
 }
 
 export interface Employee {
@@ -202,6 +225,49 @@ export interface Invoice {
 
 export interface PaginatedInvoices {
   data: Invoice[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface RoleSummary {
+  id: string;
+  name: RoleName;
+  description: string | null;
+  userCount: number;
+  permissionCount: number;
+}
+
+export interface PermissionItem {
+  id: string;
+  resource: string;
+  action: string;
+  description: string | null;
+}
+
+export interface RoleDetail extends RoleSummary {
+  permissionIds: string[];
+  catalog: PermissionItem[];
+  editable: boolean;
+  lockedPermissionIds: string[];
+}
+
+export interface Account {
+  id: string;
+  username: string;
+  email: string;
+  displayName: string | null;
+  department: { id: string; name: string; code: string } | null;
+  roles: Array<{ id: string; name: RoleName }>;
+  status: UserStatus;
+  authProvider: AuthProvider;
+  lastLoginAt: string | null;
+  createdAt: string;
+  capabilities: { canAssignRoles: boolean; canChangeStatus: boolean; canUnlock: boolean };
+}
+
+export interface PaginatedAccounts {
+  data: Account[];
   total: number;
   page: number;
   limit: number;

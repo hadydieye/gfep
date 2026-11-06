@@ -10,11 +10,16 @@ import {
   LineChart,
   Receipt,
   ReceiptText,
+  ShieldCheck,
+  UserPlus,
   Users,
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { AccountStatusBadge } from '@/components/access/access-labels';
 import { DashboardCard } from '@/components/dashboard/dashboard-card';
+import { HeadcountChart } from '@/components/dashboard/headcount-chart';
+import { ServiceStatusCard } from '@/components/dashboard/service-status-card';
 import { InvoiceStatusBadge, TRANSACTION_TYPE_LABEL, TransactionStatusBadge } from '@/components/finance/finance-badges';
 import { MoneyAmount } from '@/components/finance/money-amount';
 import { ErrorState } from '@/components/states/states';
@@ -39,6 +44,10 @@ export default async function DashboardPage() {
       <h1 className="mb-6 text-2xl font-semibold text-foreground-primary">Bonjour, {firstName}</h1>
       <div className={GRID}>
         {result.data.role === 'SUPER_ADMIN' && <AdminCards data={result.data} />}
+        {result.data.role === 'IT_ADMINISTRATOR' && <ItAdminCards data={result.data} />}
+        {result.data.role === 'IT_TECHNICIAN' && result.data.services && <ServiceStatusCard services={result.data.services} />}
+        {result.data.role === 'HR_MANAGER' && <HrCards data={result.data} />}
+        {result.data.role === 'AUDITOR' && <MyInfoCard user={user} />}
         {result.data.role === 'ACCOUNTANT' && <AccountantCards data={result.data} />}
         {result.data.role === 'DEPARTMENT_MANAGER' && <ManagerCards data={result.data} />}
         {result.data.role === 'EMPLOYEE' && <EmployeeCards user={user} data={result.data} />}
@@ -47,6 +56,7 @@ export default async function DashboardPage() {
   );
 }
 
+// Vue consolidée (design §6.2) : effectif, état des services, comptes récents
 function AdminCards({ data }: { data: DashboardData }) {
   return (
     <>
@@ -56,6 +66,8 @@ function AdminCards({ data }: { data: DashboardData }) {
         value={data.indicators.totalEmployees ?? 0}
         subtitle="Employés actifs"
       />
+      {data.services && <ServiceStatusCard services={data.services} />}
+      {data.recentAccounts && <RecentAccountsCard accounts={data.recentAccounts} />}
       <DashboardCard label="Accès rapides" icon={Zap}>
         <ul className="flex flex-col gap-2 text-sm">
           <li>
@@ -68,7 +80,87 @@ function AdminCards({ data }: { data: DashboardData }) {
               <Building2 className="h-4 w-4" aria-hidden /> Départements
             </Link>
           </li>
+          <li>
+            <Link href="/access/users" className="inline-flex items-center gap-2 text-link hover:underline">
+              <ShieldCheck className="h-4 w-4" aria-hidden /> Comptes et rôles
+            </Link>
+          </li>
         </ul>
+      </DashboardCard>
+    </>
+  );
+}
+
+function ItAdminCards({ data }: { data: DashboardData }) {
+  return (
+    <>
+      {data.recentAccounts && <RecentAccountsCard accounts={data.recentAccounts} />}
+      {data.services && <ServiceStatusCard services={data.services} />}
+    </>
+  );
+}
+
+const DATE_SHORT = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium', timeZone: 'UTC' });
+
+function RecentAccountsCard({ accounts }: { accounts: NonNullable<DashboardData['recentAccounts']> }) {
+  const sections = [
+    { title: 'Récemment créés', items: accounts.created, empty: 'Aucun compte créé récemment.' },
+    { title: 'Récemment suspendus', items: accounts.suspended, empty: 'Aucun compte suspendu.' },
+  ];
+  return (
+    <DashboardCard label="Comptes récents" icon={UserPlus}>
+      {sections.map((section) => (
+        <div key={section.title} className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium uppercase tracking-wide text-foreground-secondary">{section.title}</h3>
+          {section.items.length === 0 ? (
+            <p className="text-sm text-foreground-secondary">{section.empty}</p>
+          ) : (
+            <ul className="flex flex-col gap-2 text-sm">
+              {section.items.map((account) => (
+                <li key={account.id} className="flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 flex-col">
+                    <span className="truncate font-medium text-foreground-primary">{account.displayName ?? account.username}</span>
+                    <span className="text-xs text-foreground-secondary">{account.username} · {DATE_SHORT.format(new Date(account.date))}</span>
+                  </span>
+                  <AccountStatusBadge status={account.status} />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+      <Link href="/access/users" className="mt-1 text-sm font-medium text-link hover:underline">
+        Gérer les comptes
+      </Link>
+    </DashboardCard>
+  );
+}
+
+function HrCards({ data }: { data: DashboardData }) {
+  const hires = data.recentHires ?? [];
+  return (
+    <>
+      <DashboardCard label="Effectif global" icon={Users} value={data.indicators.totalEmployees ?? 0} subtitle="Employés actifs" />
+      <DashboardCard label="Répartition par département" icon={Building2} className="md:col-span-2">
+        <HeadcountChart data={data.headcountByDepartment ?? []} />
+      </DashboardCard>
+      <DashboardCard label="Dernières embauches" icon={UserPlus}>
+        {hires.length === 0 ? (
+          <p className="text-sm text-foreground-secondary">Aucune embauche enregistrée.</p>
+        ) : (
+          <ul className="flex flex-col gap-2 text-sm">
+            {hires.map((hire) => (
+              <li key={hire.id} className="flex items-baseline justify-between gap-3">
+                <Link href={`/employees/${hire.id}`} className="min-w-0 truncate font-medium text-link hover:underline">
+                  {hire.firstName} {hire.lastName}
+                </Link>
+                <span className="shrink-0 text-xs text-foreground-secondary">
+                  {hire.department} · {DATE_SHORT.format(new Date(hire.hireDate))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </DashboardCard>
     </>
   );
@@ -173,6 +265,21 @@ function AccountantCards({ data }: { data: DashboardData }) {
 function EmployeeCards({ user, data }: { user: AuthUser; data: DashboardData }) {
   return (
     <>
+      <MyInfoCard user={user} />
+      <DocumentListCard
+        label="Mes documents récents"
+        icon={FileText}
+        documents={data.recentDocuments ?? []}
+        emptyMessage="Aucun document récent."
+      />
+    </>
+  );
+}
+
+// « Mes informations » : EMPLOYEE, et AUDITOR jusqu'à l'étape 2.6 (design §6.2)
+function MyInfoCard({ user }: { user: AuthUser }) {
+  return (
+    <>
       <DashboardCard label="Mes informations" icon={IdCard}>
         <dl className="flex flex-col gap-1 text-sm">
           {user.employee && (
@@ -197,12 +304,6 @@ function EmployeeCards({ user, data }: { user: AuthUser; data: DashboardData }) 
           </Link>
         )}
       </DashboardCard>
-      <DocumentListCard
-        label="Mes documents récents"
-        icon={FileText}
-        documents={data.recentDocuments ?? []}
-        emptyMessage="Aucun document récent."
-      />
     </>
   );
 }

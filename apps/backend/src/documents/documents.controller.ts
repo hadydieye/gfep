@@ -20,7 +20,7 @@ import type { AuthenticatedUser } from '../auth/authenticated-user.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { Permission } from '../rbac/decorators/permission.decorator.js';
 import { Roles } from '../rbac/decorators/roles.decorator.js';
-import { DOCUMENT_ROLES } from '../rbac/roles.js';
+import { DOCUMENT_ROLES, DOCUMENT_VALIDATE_ROLES } from '../rbac/roles.js';
 import { CreateDocumentDto } from './dto/create-document.dto.js';
 import {
   DocumentCategoryDto,
@@ -117,7 +117,7 @@ export class DocumentsController {
   }
 
   @Patch(':id/validation')
-  @Roles('SUPER_ADMIN', 'DEPARTMENT_MANAGER')
+  @Roles(...DOCUMENT_VALIDATE_ROLES)
   @Permission('documents', 'validate')
   updateValidation(
     @Param('id', ParseUUIDPipe) id: string,

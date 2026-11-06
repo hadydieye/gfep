@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
 import cookieParser from 'cookie-parser';
+import { AccessModule } from './access/access.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AuditModule } from './audit/audit.module.js';
 import { SessionGuard } from './auth/session.guard.js';
@@ -35,6 +36,7 @@ import { RbacModule } from './rbac/rbac.module.js';
     EmployeesModule,
     DepartmentsModule,
     FinanceModule,
+    AccessModule,
   ],
   // Interdiction par défaut : session, puis rôle, puis permission, sur toutes les routes.
   // Exceptions explicites : @Public() et @AuthenticatedOnly().

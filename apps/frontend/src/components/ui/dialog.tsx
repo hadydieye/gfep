@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from './button';
 
@@ -13,6 +13,7 @@ export function ConfirmDialog({
   busy = false,
   onOpenChange,
   onConfirm,
+  children,
 }: {
   open: boolean;
   title: string;
@@ -22,6 +23,8 @@ export function ConfirmDialog({
   busy?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  /** Contenu complémentaire (ex. option du choix confirmé), placé sous la description */
+  children?: ReactNode;
 }) {
   useEffect(() => {
     if (!open || destructive) return;
@@ -69,6 +72,7 @@ export function ConfirmDialog({
             </Button>
           )}
         </div>
+        {children && <div className="mt-4">{children}</div>}
         <div className="mt-6 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => onOpenChange(false)} disabled={busy}>
             Annuler

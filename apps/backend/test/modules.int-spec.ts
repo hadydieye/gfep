@@ -45,20 +45,24 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
     it('SUPER_ADMIN : effectif global actif', async () => {
       const response = await get('/dashboard', cookies.admin);
       expect(response.status).toBe(200);
-      expect(response.body).toEqual({
+      expect(response.body).toMatchObject({
         role: 'SUPER_ADMIN',
         indicators: { totalEmployees: await activeCount() },
         recentActivity: [],
+        // Vue consolidée (étape 2.4) : état des services et comptes récents
+        services: { database: 'UP', ldap: 'NOT_CONFIGURED' },
       });
+      expect(response.body.recentAccounts.created).toHaveLength(5);
     });
 
     it('DEPARTMENT_MANAGER : effectif et nom de son département uniquement', async () => {
-      const rh = await department('RH');
+      // a.barry, responsable du département Audit et conformité (M5, étape 2.4)
+      const rh = await department('AC');
       const response = await get('/dashboard', cookies.manager);
       expect(response.status).toBe(200);
       expect(response.body).toMatchObject({
         role: 'DEPARTMENT_MANAGER',
-        indicators: { departmentEmployees: await activeCount(rh.id), departmentName: 'Ressources humaines' },
+        indicators: { departmentEmployees: await activeCount(rh.id), departmentName: 'Audit et conformité' },
         recentActivity: [],
       });
       const expectedPending = await prisma.document.findMany({
@@ -161,7 +165,7 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
 
   describe('POST /employees par un DEPARTMENT_MANAGER', () => {
     it('création dans son département : 201', async () => {
-      const rh = await department('RH');
+      const rh = await department('AC');
       const response = await request(app.getHttpServer())
         .post('/api/v1/employees')
         .set('Cookie', cookies.manager)
@@ -176,7 +180,7 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
       expect(response.status).toBe(201);
       expect(response.body).toMatchObject({
         lastName: 'Soumah',
-        department: { code: 'RH' },
+        department: { code: 'AC' },
         employmentStatus: 'ACTIVE',
       });
       expect(await prisma.employee.count({ where: { lastName: 'Soumah' } })).toBe(1);
@@ -191,8 +195,8 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
       for (const item of response.body as Array<{ id: string; headcount: number }>) {
         expect(item.headcount).toBe(await activeCount(item.id));
       }
-      const rh = (response.body as Array<{ code: string; headcount: number }>).find((d) => d.code === 'RH');
-      expect(rh?.headcount).toBe(7); // 6 employés RH du seed + Soumah créée ci-dessus
+      const ac = (response.body as Array<{ code: string; headcount: number }>).find((d) => d.code === 'AC');
+      expect(ac?.headcount).toBe(7); // 6 employés AC du seed + Soumah créée ci-dessus par le DM (AC)
     });
 
     it('l’effectif suit les changements de statut (employé suspendu exclu)', async () => {
@@ -213,14 +217,14 @@ describe('Dashboard, Employés, Départements (intégration)', () => {
       expect(response.body).toMatchObject({
         code: 'RH',
         name: 'Ressources humaines',
-        headcount: 7,
+        headcount: 6,
         manager: { firstName: 'Fatoumata', lastName: 'Camara', position: 'Responsable RH' },
         // Postes triés par niveau hiérarchique
         positions: [{ title: 'Responsable RH' }, { title: 'Chargé(e) RH' }, { title: 'Assistant(e) RH' }],
       });
       const team = response.body.employees.map((e: { lastName: string }) => e.lastName);
-      expect(team).toHaveLength(7);
-      expect(team).toEqual(expect.arrayContaining(['Camara', 'Soumah', 'Bah', 'Kanté']));
+      expect(team).toHaveLength(6);
+      expect(team).toEqual(expect.arrayContaining(['Camara', 'Bah', 'Kanté']));
     });
 
     it('404 pour un département inconnu', async () => {

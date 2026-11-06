@@ -5,12 +5,11 @@ import { CREDENTIALS, createTestApp, resetDatabase, seedOrThrow, sessionCookie, 
 
 /**
  * Étape 2.3 — Finance (gfep-mvp2 R11–R15, M13, M14). Comptes du seed complet :
- * SUPER_ADMIN m.keita, ACCOUNTANT ibrahima.sow, DEPARTMENT_MANAGER f.camara (RH),
+ * SUPER_ADMIN t.balde, ACCOUNTANT ibrahima.sow, DEPARTMENT_MANAGER a.barry (AC),
  * EMPLOYEE m.diallo (CF).
  */
 type Role = 'admin' | 'accountant' | 'manager' | 'employee';
 
-const ACCOUNTANT = { username: 'ibrahima.sow', password: 'GF_Acc2026!' };
 const NON_EXISTENT_ID = '00000000-0000-4000-8000-000000000000';
 const AMOUNT_STRING = /^\d+\.\d{2}$/;
 const STATE_CONFLICT = "Cette action n'est pas possible dans l'état actuel.";
@@ -45,13 +44,13 @@ describe('Finance (intégration)', () => {
     app = await createTestApp();
     sessions = {
       admin: await sessionCookie(app, CREDENTIALS.admin),
-      accountant: await sessionCookie(app, ACCOUNTANT),
+      accountant: await sessionCookie(app, CREDENTIALS.accountant),
       manager: await sessionCookie(app, CREDENTIALS.manager),
       employee: await sessionCookie(app, CREDENTIALS.employee),
     };
     const departments = await prisma.department.findMany();
     departmentIds = new Map(departments.map((d) => [d.code, d.id]));
-    adminId = (await prisma.user.findUniqueOrThrow({ where: { username: 'm.keita' } })).id;
+    adminId = (await prisma.user.findUniqueOrThrow({ where: { username: CREDENTIALS.admin.username } })).id;
   });
 
   afterAll(async () => {
@@ -114,8 +113,8 @@ describe('Finance (intégration)', () => {
       expect((await call('GET', '/invoices', sessions[role])).status).toBe(status);
     });
 
-    it.each(readCases)('GET /invoices/:id (facture RH) : %s → %i', async (role, status) => {
-      const invoice = await makeInvoice('RH');
+    it.each(readCases)('GET /invoices/:id (facture AC) : %s → %i', async (role, status) => {
+      const invoice = await makeInvoice('AC');
       expect((await call('GET', `/invoices/${invoice.id}`, sessions[role])).status).toBe(status);
     });
 
@@ -134,7 +133,7 @@ describe('Finance (intégration)', () => {
       ['manager', 403],
       ['employee', 403],
     ])('PATCH /transactions/:id/status : %s → %i', async (role, status) => {
-      const transaction = await makeTransaction('RH');
+      const transaction = await makeTransaction('AC');
       const response = await call('PATCH', `/transactions/${transaction.id}/status`, sessions[role], {
         status: 'VALIDATED',
       });
@@ -147,14 +146,14 @@ describe('Finance (intégration)', () => {
       ['manager', 403],
       ['employee', 403],
     ])('PATCH /invoices/:id/status : %s → %i', async (role, status) => {
-      const invoice = await makeInvoice('RH', InvoiceStatus.SENT);
+      const invoice = await makeInvoice('AC', InvoiceStatus.SENT);
       const response = await call('PATCH', `/invoices/${invoice.id}/status`, sessions[role], { status: 'PAID' });
       expect(response.status).toBe(status);
     });
 
     it('sans session : 401 sur chaque route finance', async () => {
-      const invoice = await makeInvoice('RH');
-      const transaction = await makeTransaction('RH');
+      const invoice = await makeInvoice('AC');
+      const transaction = await makeTransaction('AC');
       const responses = await Promise.all([
         call('GET', '/transactions'),
         call('POST', '/transactions', undefined, validBody()),
@@ -168,7 +167,7 @@ describe('Finance (intégration)', () => {
 
     it('un refus ne modifie rien : EMPLOYEE et DM ne créent ni ne changent aucun statut', async () => {
       const before = await prisma.transaction.count();
-      const invoice = await makeInvoice('RH', InvoiceStatus.SENT);
+      const invoice = await makeInvoice('AC', InvoiceStatus.SENT);
       await call('POST', '/transactions', sessions.employee, validBody());
       await call('POST', '/transactions', sessions.manager, validBody());
       await call('PATCH', `/invoices/${invoice.id}/status`, sessions.manager, { status: 'PAID' });
@@ -192,15 +191,15 @@ describe('Finance (intégration)', () => {
 
   describe('scope du DEPARTMENT_MANAGER (M13)', () => {
     it('transactions : uniquement celles de son département, jamais celles sans département', async () => {
-      const own = await makeTransaction('RH');
+      const own = await makeTransaction('AC');
       const other = await makeTransaction('CF');
       const orphan = await makeTransaction(null);
 
       const response = await call('GET', '/transactions?limit=100', sessions.manager);
       expect(response.status).toBe(200);
-      const expected = await prisma.transaction.count({ where: { departmentId: dep('RH') } });
+      const expected = await prisma.transaction.count({ where: { departmentId: dep('AC') } });
       expect(response.body.total).toBe(expected);
-      expect(response.body.data.every((t: { department: { code: string } }) => t.department.code === 'RH')).toBe(true);
+      expect(response.body.data.every((t: { department: { code: string } }) => t.department.code === 'AC')).toBe(true);
       const ids = response.body.data.map((t: { id: string }) => t.id);
       expect(ids).toContain(own.id);
       expect(ids).not.toContain(other.id);
@@ -217,8 +216,8 @@ describe('Finance (intégration)', () => {
       const orphan = await makeInvoice(null);
       const response = await call('GET', '/invoices?limit=100', sessions.manager);
       expect(response.status).toBe(200);
-      expect(response.body.total).toBe(await prisma.invoice.count({ where: { departmentId: dep('RH') } }));
-      expect(response.body.data.every((i: { department: { code: string } }) => i.department.code === 'RH')).toBe(true);
+      expect(response.body.total).toBe(await prisma.invoice.count({ where: { departmentId: dep('AC') } }));
+      expect(response.body.data.every((i: { department: { code: string } }) => i.department.code === 'AC')).toBe(true);
       expect(response.body.data.map((i: { id: string }) => i.id)).not.toContain(orphan.id);
     });
 
@@ -232,7 +231,7 @@ describe('Finance (intégration)', () => {
     });
 
     it('factures : le DM ne reçoit aucune transition proposée (lecture seule)', async () => {
-      const invoice = await makeInvoice('RH', InvoiceStatus.SENT);
+      const invoice = await makeInvoice('AC', InvoiceStatus.SENT);
       const response = await call('GET', `/invoices/${invoice.id}`, sessions.manager);
       expect(response.body.allowedTransitions).toEqual([]);
     });
@@ -302,7 +301,7 @@ describe('Finance (intégration)', () => {
       ['trois décimales', { amount: '10.123' }],
       ['montant au-delà de Decimal(14,2)', { amount: '1000000000000' }],
       ['type inconnu', { transactionType: 'TRANSFER' }],
-      ['département non UUID', { departmentId: 'RH' }],
+      ['département non UUID', { departmentId: 'AC' }],
       ['description trop longue', { description: 'x'.repeat(501) }],
     ])('400 générique : %s', async (_label, override) => {
       const response = await call('POST', '/transactions', sessions.accountant, { ...validBody(), ...override });
@@ -570,7 +569,7 @@ describe('Finance (intégration)', () => {
     });
 
     it('les lectures ne sont pas journalisées', async () => {
-      const invoice = await makeInvoice('RH');
+      const invoice = await makeInvoice('AC');
       await call('GET', `/invoices/${invoice.id}`, sessions.manager);
       await call('GET', '/transactions', sessions.manager);
       expect(await prisma.auditLog.count({ where: { resourceId: invoice.id } })).toBe(0);

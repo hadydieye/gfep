@@ -4,8 +4,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { EmploymentStatus, Prisma, UserStatus } from '@prisma/client';
+import { STATE_CONFLICT_MESSAGE, assertMayManageAccount, runSerializable } from '../access/access-policy.js';
 import type { AuthenticatedUser } from '../auth/authenticated-user.js';
+import { AuditService } from '../audit/audit.service.js';
 import { BusinessRuleException } from '../common/invalid-data.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { writeScopeDepartmentId } from '../rbac/roles.js';
@@ -13,6 +15,7 @@ import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { EmployeeResponseDto, PaginatedEmployeesDto } from './dto/employee-response.dto.js';
 import { PaginationQueryDto } from './dto/pagination-query.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
+import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto.js';
 
 const EMPLOYEE_INCLUDE = {
   department: { select: { id: true, name: true, code: true } },
@@ -27,7 +30,10 @@ export const MAX_EMPLOYEE_NUMBER_ATTEMPTS = 5;
 
 @Injectable()
 export class EmployeesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   async findAll(query: PaginationQueryDto): Promise<PaginatedEmployeesDto> {
     const page = query.page ?? 1;
@@ -152,6 +158,72 @@ export class EmployeesService {
         throw translateUniqueViolation(error);
       });
     return toResponse(employee);
+  }
+
+  /**
+   * Changement de statut (M16, T2.4.R1). SUSPENDED ou TERMINATED suspend aussi le
+   * compte lié et révoque ses sessions, dans une seule transaction avec l'audit.
+   * ACTIVE ne réactive que la fiche : le compte se réactive via /access/users.
+   */
+  async changeStatus(
+    id: string,
+    dto: UpdateEmployeeStatusDto,
+    user: AuthenticatedUser,
+    sourceIp: string,
+  ): Promise<EmployeeResponseDto> {
+    return runSerializable(this.prisma, async (tx) => {
+      const existing = await tx.employee.findUnique({
+        where: { id },
+        include: { identity: { include: { user: { include: { userRoles: { include: { role: true } } } } } } },
+      });
+      if (!existing) throw new NotFoundException('Employé introuvable.');
+      // Interdit de changer son propre statut (M16)
+      if (user.employeeIdentity?.employeeId === id) throw new ForbiddenException();
+      const scopeDepartmentId = writeScopeDepartmentId(user);
+      if (scopeDepartmentId && existing.departmentId !== scopeDepartmentId) throw new ForbiddenException();
+      if (existing.employmentStatus === dto.status) throw new ConflictException(STATE_CONFLICT_MESSAGE);
+
+      const account = existing.identity?.user ?? null;
+      const suspendsAccount = dto.status !== EmploymentStatus.ACTIVE && account !== null;
+      // La suspension du compte lié suit les garde-fous de M17 (SUPER_ADMIN, dernier SUPER_ADMIN actif)
+      if (suspendsAccount) {
+        await assertMayManageAccount(
+          tx,
+          user,
+          { id: account.id, roles: account.userRoles.map(({ role }) => role.name) },
+          { protectsLastSuperAdmin: true },
+        );
+      }
+
+      await tx.employee.update({ where: { id }, data: { employmentStatus: dto.status } });
+      let revokedSessions = 0;
+      if (suspendsAccount) {
+        await tx.user.update({ where: { id: account.id }, data: { status: UserStatus.SUSPENDED } });
+        revokedSessions = (
+          await tx.session.updateMany({
+            where: { userId: account.id, revokedAt: null },
+            data: { revokedAt: new Date() },
+          })
+        ).count;
+      }
+      await this.audit.record(tx, {
+        actorId: user.id,
+        action: 'employee.status_change',
+        resourceType: 'Employee',
+        resourceId: id,
+        sourceIp,
+        oldValues: {
+          employmentStatus: existing.employmentStatus,
+          ...(account ? { accountStatus: account.status } : {}),
+        },
+        newValues: {
+          employmentStatus: dto.status,
+          ...(account ? { accountStatus: suspendsAccount ? UserStatus.SUSPENDED : account.status } : {}),
+          revokedSessions,
+        },
+      });
+      return toResponse(await tx.employee.findUniqueOrThrow({ where: { id }, include: EMPLOYEE_INCLUDE }));
+    });
   }
 
   // Intégrité référentielle : le poste doit appartenir au département, le responsable exister

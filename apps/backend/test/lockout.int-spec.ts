@@ -55,7 +55,7 @@ describe('Verrouillage temporaire (intégration, horloge simulée)', () => {
   it('pendant le verrou, le bon mot de passe est refusé sans différence observable', async () => {
     await lock(CREDENTIALS.employee.username);
 
-    const wrong = await login(app, { username: 'm.keita', password: 'mauvais' });
+    const wrong = await login(app, { username: CREDENTIALS.admin.username, password: 'mauvais' });
     const lockedGood = await login(app, CREDENTIALS.employee);
 
     expect(lockedGood.status).toBe(401);
@@ -86,10 +86,10 @@ describe('Verrouillage temporaire (intégration, horloge simulée)', () => {
     await lock(CREDENTIALS.manager.username);
     advanceClock(LOCK_DURATION_MS + 1_000);
 
-    const response = await login(app, { username: 'f.camara', password: 'mauvais' });
+    const response = await login(app, { username: CREDENTIALS.manager.username, password: 'mauvais' });
     expect(response.status).toBe(401);
     expect(response.body).toEqual(GENERIC_401);
-    const afterExpiry = await user('f.camara');
+    const afterExpiry = await user(CREDENTIALS.manager.username);
     expect(afterExpiry.status).toBe(UserStatus.ACTIVE);
     expect(afterExpiry.failedLoginCount).toBe(1);
   });
@@ -98,16 +98,16 @@ describe('Verrouillage temporaire (intégration, horloge simulée)', () => {
     // f.camara : 1 échec déjà compté, 4 de plus reverrouillent le compte
     const ip = nextIp();
     for (let i = 0; i < 4; i += 1) {
-      await login(app, { username: 'f.camara', password: 'mauvais' }, ip);
+      await login(app, { username: CREDENTIALS.manager.username, password: 'mauvais' }, ip);
     }
-    expect((await user('f.camara')).status).toBe(UserStatus.LOCKED);
+    expect((await user(CREDENTIALS.manager.username)).status).toBe(UserStatus.LOCKED);
     expect((await login(app, CREDENTIALS.manager)).status).toBe(401);
   });
 
   it('un compte verrouillé sans événement ACCOUNT_LOCKED reste verrouillé', async () => {
-    await prisma.user.update({ where: { username: 'm.keita' }, data: { status: UserStatus.LOCKED } });
+    await prisma.user.update({ where: { username: CREDENTIALS.admin.username }, data: { status: UserStatus.LOCKED } });
     advanceClock(24 * 60 * 60 * 1000);
     expect((await login(app, CREDENTIALS.admin)).status).toBe(401);
-    expect((await user('m.keita')).status).toBe(UserStatus.LOCKED);
+    expect((await user(CREDENTIALS.admin.username)).status).toBe(UserStatus.LOCKED);
   });
 });

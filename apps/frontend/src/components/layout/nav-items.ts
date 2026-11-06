@@ -1,4 +1,4 @@
-import { Building2, FileText, LayoutDashboard, Users, Wallet } from 'lucide-react';
+import { Building2, FileText, LayoutDashboard, ShieldCheck, Users, Wallet } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 type Permissions = Array<{ resource: string; action: string }>;
@@ -35,6 +35,15 @@ const NAV_DEFINITIONS: Array<{
     children: [
       { href: '/finance/transactions', label: 'Transactions', resource: 'transactions' },
       { href: '/finance/invoices', label: 'Factures', resource: 'invoices' },
+    ],
+  },
+  {
+    href: '/access',
+    label: 'Accès',
+    icon: ShieldCheck,
+    children: [
+      { href: '/access/users', label: 'Comptes', resource: 'users' },
+      { href: '/access/roles', label: 'Rôles', resource: 'roles' },
     ],
   },
 ];

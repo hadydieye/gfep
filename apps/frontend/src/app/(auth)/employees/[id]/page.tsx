@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { Pencil, UserX } from 'lucide-react';
+import { Pencil } from 'lucide-react';
+import { EmployeeStatusActions } from '@/components/employees/employee-status-actions';
 import { StatusBadge, formatDate } from '@/components/employees/status-badge';
 import { ApiErrorState } from '@/components/states/states';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { Button } from '@/components/ui/button';
 import { apiGet } from '@/lib/api/server';
 import type { Employee } from '@/lib/api/types';
-import { canWriteEmployee } from '@/lib/auth/scope';
+import { canChangeEmployeeStatus, canWriteEmployee } from '@/lib/auth/scope';
 import { getSession } from '@/lib/auth/session';
 
 export default async function EmployeeDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -28,6 +29,7 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
   const employee = result.data;
   const fullName = `${employee.firstName} ${employee.lastName}`;
   const canWrite = canWriteEmployee(user, employee.departmentId);
+  const canChangeStatus = canChangeEmployeeStatus(user, employee);
 
   return (
     <div>
@@ -38,19 +40,17 @@ export default async function EmployeeDetailPage({ params }: { params: Promise<{
           <StatusBadge status={employee.employmentStatus} />
           <span className="text-sm text-foreground-secondary">{employee.employeeNumber}</span>
         </div>
-        {canWrite && (
+        {(canWrite || canChangeStatus) && (
           <div className="flex gap-2">
-            <Button asChild variant="secondary">
-              <Link href={`/employees/${employee.id}/edit`}>
-                <Pencil className="h-4 w-4" aria-hidden />
-                Modifier
-              </Link>
-            </Button>
-            {/* La suspension sera branchée sur un endpoint dédié dans un lot ultérieur */}
-            <Button variant="destructive" disabled title="Disponible prochainement">
-              <UserX className="h-4 w-4" aria-hidden />
-              Suspendre
-            </Button>
+            {canWrite && (
+              <Button asChild variant="secondary">
+                <Link href={`/employees/${employee.id}/edit`}>
+                  <Pencil className="h-4 w-4" aria-hidden />
+                  Modifier
+                </Link>
+              </Button>
+            )}
+            {canChangeStatus && <EmployeeStatusActions employee={employee} />}
           </div>
         )}
       </div>

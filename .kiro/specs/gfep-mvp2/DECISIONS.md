@@ -262,6 +262,49 @@ Un document non visible renvoie **404**, et non 403 : son existence n'est pas r�
   - envoie une notification `ROLE_CHANGED` à **chaque utilisateur titulaire du rôle**, dans la même transaction (à partir de 2.5 ; en 2.4, l'emplacement est prévu sans notification) ;
   - écrit une entrée d'audit `role.permissions_update`.
 
+### M31 — Mise en œuvre de l'étape 2.4 (2026-11-06)
+**Rôles et permissions (T2.4.1) :**
+- L'étape crée les 4 rôles IT_ADMINISTRATOR, IT_TECHNICIAN, HR_MANAGER et AUDITOR. Le 5e rôle de `06` §2.4, ACCOUNTANT, existe depuis 2.3 (M6, M30) : 8 rôles au total.
+- **23 permissions, pas 30 :** M24 répartit le catalogue par étape. Les 7 permissions restantes (`notifications:*`, `audit:read`, `security_events:read`, `documents:history`, `ad_mappings:*`) arrivent avec leurs routes en 2.5, 2.6 et 2.7. Les créer maintenant laisserait des permissions orphelines, sans route.
+- Matrice : celle de design §2, limitée aux 23 permissions existantes ; 85 liaisons rôle-permission. Le SUPER_ADMIN détient toujours l'intégralité du catalogue (calculée, M18).
+- ACCOUNTANT est inchangé par rapport à 2.3 (11 permissions, conformes à la ligne ACC de design §2) : aucun doublon, aucune permission orpheline (test du seed).
+- IT_TECHNICIAN : 3 permissions (dashboard, employés, départements en lecture, M15). AUDITOR : lecture employés et départements, plus les permissions documents de la matrice de design §2 ; aucune permission d'audit avant 2.6. Les permissions en trop sont contrôlées par un test dédié.
+- Mots de passe de démonstration : `GF_ItAdmin2026!`, `GF_ItTech2026!`, `GF_Hr2026!`, `GF_Audit2026!`, surchargeables par `SEED_PASSWORD_<ROLE>` (ajoutés à `.env.example`).
+
+**Comptes (T2.4.2, M5) :** `t.balde` SA, `m.keita` ITA, `f.camara` HR, `a.barry` DM (département AC), `ibrahima.sow` ACC, `s.toure` AUD, `f.kaba` ITT ; l'ancien rôle est retiré. Le créateur des factures et transactions du seed devient `t.balde` pour une base neuve.
+
+**Tests MVP 1 mis à jour (T2.4.4, Q3) :**
+- `test/helpers.ts` : `CREDENTIALS` = SA `t.balde`, DM `a.barry`, plus `itAdmin`, `itTech`, `hr`, `accountant`, `auditor`.
+- `rbac`, `modules`, `documents`, `finance` : le DEPARTMENT_MANAGER et son scope passent du département RH au département AC ; `modules` : effectif RH 6 (l'employé créé par le DM est désormais en AC).
+- `auth`, `lockout` : identifiants littéraux remplacés par `CREDENTIALS`.
+- `documents` : l'EMPLOYEE de la Direction devient `m.sylla` (`t.balde` est SUPER_ADMIN) ; la sélection d'un employé par département ne retient que des comptes EMPLOYEE.
+- `seed` : matrice exacte des 8 rôles, personas de M5, délai explicite de 90 s pour le test qui enchaîne deux seeds.
+- `employees.service.spec` : le service reçoit `AuditService`. `employee-number` et `validation` n'ont pas changé.
+
+**Routes (T2.4.3) :** `@Roles` par constantes (`ALL_ROLES`, `READ_ROLES`, `EMPLOYEE_WRITE_ROLES`, `DOCUMENT_ROLES`, `DOCUMENT_VALIDATE_ROLES`, `FINANCE_*`, `ACCESS_ROLES`). HR_MANAGER écrit sur les employés de tous les départements, sans scope. Rôle principal (I6) : SA > ITA > HR > ACC > DM > AUD > ITT > EMP, identique au backend et au frontend.
+
+**Statut d'un employé (T2.4.5, M16) :**
+- Même statut : 409. Les autres changements sont permis, y compris depuis `TERMINATED` ; l'interface ne propose « Réactiver » que pour un employé non actif.
+- **(dérivé — à valider)** Suspendre l'employé lié à un compte SUPER_ADMIN applique les garde-fous de M17 (non-SA → 403, dernier SA actif → 403). Sans cela, un HR_MANAGER suspendrait le compte de la Direction par sa fiche employé.
+- Audit `employee.status_change` : statut de l'employé, statut du compte et nombre de sessions révoquées. Un employé sans compte ne change que de statut.
+
+**Comptes (T2.4.8, T2.4.9, M17) :**
+- **(dérivé — à valider)** « Un IT_ADMINISTRATOR n'agit pas sur un SUPER_ADMIN » est généralisé à **tout compte non SUPER_ADMIN** : la matrice étant modifiable, un autre rôle pourrait recevoir `users:*`.
+- Dernier SA actif : vérifié dans la transaction, en isolation SERIALIZABLE (un conflit renvoie 409). Comme l'auteur d'une action est forcément un compte actif et qu'agir sur soi-même est interdit, cette règle n'est pas atteignable seule par l'API tant que les règles précédentes s'appliquent ; elle reste en défense en profondeur, couverte par un test unitaire et par un test de suspensions croisées simultanées de deux SA (un seul aboutit).
+- Transitions de statut d'un compte : `ACTIVE` ou `LOCKED` → `SUSPENDED` (sessions révoquées) ; `SUSPENDED` → `ACTIVE` (compteur d'échecs à 0) ; `LOCKED` → `ACTIVE` uniquement par `/unlock` (sinon 409) ; même statut : 409.
+- **(dérivé — à valider)** Un compte garde au moins un rôle : `roleIds` vide → 400. Rôle inexistant → 400 « Rôle inexistant. ». Aucun changement → 200 sans audit.
+- Audits : `role.assign` et `role.remove` (un par rôle), `user.suspend`, `user.reactivate`, `user.unlock`, `role.permissions_update`.
+- La liste des comptes expose des `capabilities` calculées avec les mêmes règles que le service : l'interface ne rend pas les actions interdites (design §6.3) ; le serveur reste seul juge.
+- Points d'appel prévus : notifications `ROLE_CHANGED` (2.5) ; au verrouillage d'un compte, alerte `WARNING` aux ITA et `SecurityEvent account_locked` (2.5, 2.6). Ils sont marqués dans le code, sans effet en 2.4.
+- Verrouillage automatique (I14) inchangé : il s'applique à tous les comptes, y compris le dernier SA actif (cadre labo : le brute force reste démontrable).
+
+**Interface et dashboards (T2.4.6, T2.4.10, T2.4.11) :**
+- Recharts 2.15.4 installé dans le frontend (TRD : graphiques), pour la répartition par département du dashboard HR.
+- `ConfirmDialog` accepte un contenu complémentaire (option « Sortie définitive »). Nouveau composant `ui/checkbox.tsx`, libellé toujours visible.
+- La création d'employé est affichée selon la permission `employees:write` (SA, HR, DM), et non plus selon les rôles SA et DM.
+- Dashboards : SA (effectif, état des services, comptes récents), ITA (comptes récents, état des services), ITT (état des services), HR (effectif, répartition, 5 dernières embauches), AUD (« Mes informations »). « Comptes récents » : les 5 derniers créés et les 5 derniers suspendus.
+- EMPLOYEE et AUDITOR ont les mêmes droits sur les endpoints jusqu'à 2.6 ; leurs dashboards les distinguent.
+
 ---
 
 ## 2.5 — Notifications
