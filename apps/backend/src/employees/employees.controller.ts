@@ -19,6 +19,7 @@ import { EMPLOYEE_WRITE_ROLES, READ_ROLES } from '../rbac/roles.js';
 import { CreateEmployeeDto } from './dto/create-employee.dto.js';
 import { EmployeeResponseDto, PaginatedEmployeesDto } from './dto/employee-response.dto.js';
 import { PaginationQueryDto } from './dto/pagination-query.dto.js';
+import { SearchEmployeeQueryDto } from './dto/search-employee-query.dto.js';
 import { UpdateEmployeeDto } from './dto/update-employee.dto.js';
 import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto.js';
 import { EmployeesService } from './employees.service.js';
@@ -32,6 +33,14 @@ export class EmployeesController {
   @Permission('employees', 'read')
   findAll(@Query() query: PaginationQueryDto): Promise<PaginatedEmployeesDto> {
     return this.employeesService.findAll(query);
+  }
+
+  // GFEP-412 — barre de recherche globale (liste employés) : requête rapide côté serveur
+  @Get('search')
+  @Roles(...READ_ROLES)
+  @Permission('employees', 'read')
+  search(@Query() query: SearchEmployeeQueryDto): Promise<EmployeeResponseDto[]> {
+    return this.employeesService.searchEmployees(query.q ?? '');
   }
 
   @Get(':id')
