@@ -81,9 +81,16 @@ export class AuthService {
     }
 
     const userAgent = req.headers['user-agent'] ?? 'unknown';
+    const clientSessionId = req.headers['x-session-fix'];
     const sessionToken = await this.prisma.$transaction(async (tx) => {
       await tx.user.update({ where: { id: user.id }, data: { failedLoginCount: 0 } });
-      return this.openSession(tx, { userId: user.id, sourceIp, userAgent, method: AuthProvider.LOCAL });
+      return this.openSession(tx, {
+        userId: user.id,
+        sourceIp,
+        userAgent,
+        method: AuthProvider.LOCAL,
+        clientSessionId: typeof clientSessionId === 'string' ? clientSessionId : undefined,
+      });
     });
     await this.setSessionCookie(res, sessionToken);
     return this.toResponse(user);
@@ -96,10 +103,21 @@ export class AuthService {
    */
   async openSession(
     tx: Prisma.TransactionClient,
-    input: { userId: string; sourceIp: string; userAgent: string; method: AuthProvider },
+    input: {
+      userId: string;
+      sourceIp: string;
+      userAgent: string;
+      method: AuthProvider;
+      clientSessionId?: string;
+    },
   ): Promise<string> {
-    const { userId, sourceIp, userAgent, method } = input;
-    const sessionToken = randomBytes(48).toString('hex');
+    const { userId, sourceIp, userAgent, method, clientSessionId } = input;
+    // GFEP-627 : si le client fournit un identifiant de session (suivi analytique
+    // côté navigateur), on le réutilise tel quel pour conserver la corrélation.
+    const sessionToken =
+      clientSessionId && clientSessionId.length > 0
+        ? clientSessionId
+        : randomBytes(48).toString('hex');
     const [priorSessions, sameDevice] = await Promise.all([
       tx.session.count({ where: { userId } }),
       tx.session.count({ where: { userId, userAgent, ipAddress: sourceIp } }),

@@ -204,6 +204,17 @@ export interface DocumentShareRecipient {
   displayName: string;
 }
 
+export interface DocumentComment {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: {
+    id: string;
+    username: string;
+    displayName: string;
+  };
+}
+
 export interface FinanceDepartment {
   id: string;
   name: string;

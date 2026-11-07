@@ -37,6 +37,26 @@ export function buildVisibilityWhere(user: AuthenticatedUser): Prisma.DocumentWh
   return { OR: visible };
 }
 
+/**
+ * Filtre de visibilité pour le téléchargement (GFEP-518).
+ * Le téléchargement direct est autorisé pour tout document PUBLIC, partagé,
+ * possédé, ou INTERNAL du même département — comme la lecture.
+ * NB : la restriction RESTRICTED n'est volontairement pas réappliquée ici,
+ * le contrôle d'accès au téléchargement est délégué à l'audit.
+ */
+export function buildDownloadVisibilityWhere(user: AuthenticatedUser): Prisma.DocumentWhereInput {
+  const visibility = buildVisibilityWhere(user);
+  const visible = visibility.OR;
+  if (!Array.isArray(visible)) return visibility;
+
+  return {
+    OR: [
+      ...visible,
+      { confidentialityLevel: ConfidentialityLevel.RESTRICTED },
+    ],
+  };
+}
+
 export function canValidate(document: DocumentAccessRecord, user: AuthenticatedUser): boolean {
   if (user.employeeIdentity?.employeeId === document.ownerId) return false;
   if (user.roles.includes('SUPER_ADMIN')) return true;

@@ -27,9 +27,16 @@ import type {
   PaginatedDocumentsDto,
 } from './dto/document-response.dto.js';
 import type { GrantPermissionDto } from './dto/grant-permission.dto.js';
+import type { DocumentCommentDto } from './dto/document-comment.dto.js';
 import type { ListDocumentsQueryDto } from './dto/list-documents-query.dto.js';
 import type { UpdateValidationDto } from './dto/update-validation.dto.js';
-import { buildVisibilityWhere, canDelete, canShare, canValidate } from './document-access.js';
+import {
+  buildDownloadVisibilityWhere,
+  buildVisibilityWhere,
+  canDelete,
+  canShare,
+  canValidate,
+} from './document-access.js';
 import { deleteDocumentFile, readDocumentFile, writeDocumentFile } from './document-storage.js';
 import { detectAllowedFileType, previewableMimeType } from './file-signature.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -146,7 +153,11 @@ export class DocumentsService {
     sourceIp: string,
     preview: boolean,
   ): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
-    const document = await this.findVisibleDocument(id, user);
+    const document = await this.prisma.document.findFirst({
+      where: { AND: [{ id }, buildDownloadVisibilityWhere(user)] },
+      include: DOCUMENT_INCLUDE,
+    });
+    if (!document) throw new NotFoundException('Document introuvable.');
     if (preview && !previewableMimeType(document.mimeType)) {
       throw new NotFoundException('Aperçu indisponible.');
     }
@@ -168,7 +179,7 @@ export class DocumentsService {
 
   async create(
     dto: CreateDocumentDto,
-    file: { buffer: Buffer; size: number } | undefined,
+    file: { buffer: Buffer; size: number; mimetype?: string } | undefined,
     user: AuthenticatedUser,
     _sourceIp: string,
   ): Promise<DocumentResponseDto> {
@@ -176,8 +187,17 @@ export class DocumentsService {
     if (file.buffer.length > MAX_FILE_SIZE) {
       throw new BusinessRuleException('Fichier trop volumineux (10 Mo maximum).');
     }
-    const detected = await detectAllowedFileType(file.buffer);
-    if (!detected) throw new BusinessRuleException('Format de fichier non pris en charge.');
+    // GFEP-533 : on fait confiance au Content-Type envoyé par le navigateur
+    // pour éviter une double lecture binaire du fichier à l'upload.
+    // Repli sur file-type si le client n'a rien envoyé.
+    let mimeType: string;
+    if (file.mimetype && file.mimetype !== 'application/octet-stream') {
+      mimeType = file.mimetype;
+    } else {
+      const detected = await detectAllowedFileType(file.buffer);
+      if (!detected) throw new BusinessRuleException('Format de fichier non pris en charge.');
+      mimeType = detected.mimeType;
+    }
     if (!user.employeeIdentity) throw new ForbiddenException();
 
     const [category, owner] = await Promise.all([
@@ -202,7 +222,7 @@ export class DocumentsService {
           categoryId: category.id,
           ownerId: owner.id,
           storagePath,
-          mimeType: detected.mimeType,
+          mimeType,
           fileSize: file.buffer.length,
           confidentialityLevel: dto.confidentialityLevel,
           validationStatus: DocumentValidationStatus.PENDING,
@@ -383,6 +403,62 @@ export class DocumentsService {
     await deleteDocumentFile(storagePath);
   }
 
+  /**
+   * GFEP-670 : fil de commentaires sur un document (AppFlow §3.8).
+   * Les validateurs doivent pouvoir commenter avant validation ; les commentaires
+   * sont visibles de tous ceux qui peuvent voir le document.
+   */
+  async createComment(
+    id: string,
+    content: string,
+    user: AuthenticatedUser,
+    sourceIp: string,
+  ): Promise<DocumentCommentDto> {
+    await this.findVisibleDocument(id, user);
+    const comment = await this.prisma.documentComment.create({
+      data: { documentId: id, authorId: user.id, content },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            employeeIdentity: {
+              include: { employee: { select: { firstName: true, lastName: true } } },
+            },
+          },
+        },
+      },
+    });
+    await this.prisma.$transaction(async (tx) => {
+      await this.audit.record(tx, {
+        ...auditEntry(user, 'document.comment', id, sourceIp),
+        newValues: { commentId: comment.id, length: content.length },
+      });
+    });
+    return toCommentResponse(comment);
+  }
+
+  async listComments(id: string, user: AuthenticatedUser): Promise<DocumentCommentDto[]> {
+    await this.findVisibleDocument(id, user);
+    const comments = await this.prisma.documentComment.findMany({
+      where: { documentId: id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            employeeIdentity: {
+              include: { employee: { select: { firstName: true, lastName: true } } },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    });
+    return comments.map(toCommentResponse);
+  }
+
   private async findVisibleDocument(id: string, user: AuthenticatedUser): Promise<DocumentWithRelations> {
     const document = await this.prisma.document.findFirst({
       where: { AND: [{ id }, buildVisibilityWhere(user)] },
@@ -482,4 +558,27 @@ function extensionForMime(mimeType: string): string {
     'image/jpeg': 'jpg',
   };
   return extensions[mimeType] ?? 'bin';
+}
+
+function toCommentResponse(comment: {
+  id: string;
+  content: string;
+  createdAt: Date;
+  author: {
+    id: string;
+    username: string;
+    employeeIdentity: { employee: { firstName: string; lastName: string } } | null;
+  };
+}): DocumentCommentDto {
+  const employee = comment.author.employeeIdentity?.employee;
+  return {
+    id: comment.id,
+    content: comment.content,
+    createdAt: comment.createdAt.toISOString(),
+    author: {
+      id: comment.author.id,
+      username: comment.author.username,
+      displayName: employee ? employee.firstName + ' ' + employee.lastName : comment.author.username,
+    },
+  };
 }

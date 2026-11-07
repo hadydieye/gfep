@@ -40,6 +40,7 @@ model User {
   authEvents       AuthEvent[]
   notifications    Notification[]
   auditLogsAsActor AuditLog[]        @relation("AuditActor")
+  documentComments DocumentComment[]
   settingsUpdated  SystemSetting[]   @relation("SettingUpdater")
 
   @@index([email])
@@ -246,7 +247,7 @@ model DocumentCategory {
 }
 
 model Document {
-  id                   String               @id @default(uuid())
+  id                   String                   @id @default(uuid())
   title                String
   description          String?
   categoryId           String
@@ -254,14 +255,15 @@ model Document {
   storagePath          String
   mimeType             String
   fileSize             Int
-  confidentialityLevel ConfidentialityLevel @default(INTERNAL)
+  confidentialityLevel ConfidentialityLevel     @default(INTERNAL)
   validationStatus     DocumentValidationStatus @default(PENDING)
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 
   category    DocumentCategory     @relation(fields: [categoryId], references: [id])
   owner       Employee             @relation("DocumentOwner", fields: [ownerId], references: [id])
   permissions DocumentPermission[]
+  comments    DocumentComment[]
 
   @@index([categoryId])
   @@index([ownerId])
@@ -280,6 +282,20 @@ model DocumentPermission {
 
   @@unique([documentId, userId, permission])
   @@map("document_permissions")
+}
+
+model DocumentComment {
+  id         String   @id @default(uuid())
+  documentId String
+  authorId   String
+  content    String
+  createdAt  DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  author   User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
+  @@map("document_comments")
 }
 
 // ============================================================

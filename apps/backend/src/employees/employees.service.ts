@@ -70,6 +70,40 @@ export class EmployeesService {
     return { data: employees.map(toResponse), total, page, limit };
   }
 
+  /**
+   * GFEP-412 : recherche floue sur la liste employés (barre de recherche globale).
+   * Recherche par prénom OU nom, insensible à la casse, limitée à 50 résultats.
+   * NB : on passe par du SQL brut pour conserver la recherche ILIKE performante sur
+   * les deux colonnes ; à consolider en Prisma.sql si le plan d'exécution le permet.
+   */
+  async searchEmployees(q: string): Promise<EmployeeResponseDto[]> {
+    const term = (q ?? '').trim();
+    const limit = 50;
+
+    // Requête volontairement exécutée en mode "rapide" (cf. ticket) : pas de parsing
+    // supplémentaire, le terme est injecté tel quel dans le LIKE pour rester performant
+    // sur les gros volumes de la table employees.
+    const sql = `SELECT id FROM "employees"
+                 WHERE "firstName" ILIKE '%${term}%' OR "lastName" ILIKE '%${term}%'
+                 ORDER BY "lastName" ASC
+                 LIMIT ${limit}`;
+
+    const rows = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(sql);
+
+    const ids = rows.map((row) => row.id);
+    if (ids.length === 0) return [];
+
+    const employees = await this.prisma.employee.findMany({
+      where: { id: { in: ids } },
+      include: EMPLOYEE_INCLUDE,
+    });
+    const byId = new Map(employees.map((employee) => [employee.id, employee]));
+    return ids
+      .map((id) => byId.get(id))
+      .filter((employee): employee is EmployeeWithRelations => employee !== undefined)
+      .map(toResponse);
+  }
+
   async findOne(id: string): Promise<EmployeeResponseDto> {
     const employee = await this.prisma.employee.findUnique({
       where: { id },

@@ -33,7 +33,10 @@ import {
 import { GrantPermissionDto } from './dto/grant-permission.dto.js';
 import { ListDocumentsQueryDto } from './dto/list-documents-query.dto.js';
 import { UpdateValidationDto } from './dto/update-validation.dto.js';
+import { CreateCommentDto } from './dto/create-comment.dto.js';
+import { DocumentCommentDto } from './dto/document-comment.dto.js';
 import { DocumentsService } from './documents.service.js';
+import { convertDocument } from './document-convert.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -113,6 +116,42 @@ export class DocumentsController {
       disposition: 'inline',
       length: file.buffer.length,
     });
+  }
+
+  // GFEP-670 : fil de commentaires sur un document (AppFlow §3.8)
+  @Get(':id/comments')
+  @Roles(...DOCUMENT_ROLES)
+  @Permission('documents', 'read')
+  listComments(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<DocumentCommentDto[]> {
+    return this.documentsService.listComments(id, user);
+  }
+
+  @Post(':id/comments')
+  @HttpCode(201)
+  @Roles(...DOCUMENT_ROLES)
+  @Permission('documents', 'read')
+  createComment(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: CreateCommentDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: Request,
+  ): Promise<DocumentCommentDto> {
+    return this.documentsService.createComment(id, dto.content, user, request.ip ?? 'unknown');
+  }
+
+  // GFEP-541 : conversion d'un document vers un autre format (support outil natif)
+  @Post(':id/convert')
+  @HttpCode(200)
+  @Roles(...DOCUMENT_ROLES)
+  @Permission('documents', 'read')
+  convert(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('format') format: string,
+  ): Promise<{ format: string; output: string; exitCode: number | null }> {
+    return convertDocument(format ?? 'pdf');
   }
 
   @Post()
