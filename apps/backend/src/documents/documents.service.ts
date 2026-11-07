@@ -29,7 +29,13 @@ import type {
 import type { GrantPermissionDto } from './dto/grant-permission.dto.js';
 import type { ListDocumentsQueryDto } from './dto/list-documents-query.dto.js';
 import type { UpdateValidationDto } from './dto/update-validation.dto.js';
-import { buildVisibilityWhere, canDelete, canShare, canValidate } from './document-access.js';
+import {
+  buildDownloadVisibilityWhere,
+  buildVisibilityWhere,
+  canDelete,
+  canShare,
+  canValidate,
+} from './document-access.js';
 import { deleteDocumentFile, readDocumentFile, writeDocumentFile } from './document-storage.js';
 import { detectAllowedFileType, previewableMimeType } from './file-signature.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
@@ -146,7 +152,11 @@ export class DocumentsService {
     sourceIp: string,
     preview: boolean,
   ): Promise<{ buffer: Buffer; mimeType: string; filename: string }> {
-    const document = await this.findVisibleDocument(id, user);
+    const document = await this.prisma.document.findFirst({
+      where: { AND: [{ id }, buildDownloadVisibilityWhere(user)] },
+      include: DOCUMENT_INCLUDE,
+    });
+    if (!document) throw new NotFoundException('Document introuvable.');
     if (preview && !previewableMimeType(document.mimeType)) {
       throw new NotFoundException('Aperçu indisponible.');
     }
