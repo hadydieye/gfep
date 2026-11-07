@@ -8,6 +8,7 @@ import { BusinessRuleException } from '../common/invalid-data.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { ChangePasswordDto } from './dto/change-password.dto.js';
+import type { UpdateOwnProfileDto } from './dto/update-own-profile.dto.js';
 import type { ProfileResponseDto } from './dto/profile-response.dto.js';
 
 export const WRONG_CURRENT_PASSWORD = 'Mot de passe actuel incorrect.';
@@ -66,6 +67,64 @@ export class ProfileService {
           }
         : null,
     };
+  }
+
+  /**
+   * GFEP-655 : mise à jour de la fiche employé en self-service (N15).
+   * L'employé connecté peut corriger ses propres informations depuis son profil.
+   * Les champs d'identification (numéro, email professionnel) sont gérés par les RH
+   * et restent hors du DTO. Les autres champs du formulaire employé sont repris tels
+   * quels (nom, prénom, téléphone, département, poste, responsable, date d'embauche).
+   */
+  async updateEmployee(
+    user: AuthenticatedUser,
+    dto: UpdateOwnProfileDto,
+    sourceIp: string,
+  ): Promise<ProfileResponseDto> {
+    if (!user.employeeIdentity) throw new ConflictException('Aucune fiche employé associée à ce compte.');
+    const employeeId = user.employeeIdentity.employeeId;
+
+    await this.prisma.$transaction(async (tx) => {
+      const before = await tx.employee.findUniqueOrThrow({ where: { id: employeeId } });
+      const updated = await tx.employee.update({
+        where: { id: employeeId },
+        data: {
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          phone: dto.phone,
+          departmentId: dto.departmentId,
+          positionId: dto.positionId,
+          managerId: dto.managerId,
+          hireDate: dto.hireDate ? new Date(dto.hireDate) : undefined,
+        },
+      });
+      await this.audit.record(tx, {
+        actorId: user.id,
+        action: 'employee.self_update',
+        resourceType: 'Employee',
+        resourceId: employeeId,
+        sourceIp,
+        oldValues: {
+          firstName: before.firstName,
+          lastName: before.lastName,
+          phone: before.phone,
+          departmentId: before.departmentId,
+          positionId: before.positionId,
+          managerId: before.managerId,
+          hireDate: before.hireDate.toISOString().slice(0, 10),
+        },
+        newValues: {
+          firstName: updated.firstName,
+          lastName: updated.lastName,
+          phone: updated.phone,
+          departmentId: updated.departmentId,
+          positionId: updated.positionId,
+          managerId: updated.managerId,
+          hireDate: updated.hireDate.toISOString().slice(0, 10),
+        },
+      });
+    });
+    return this.get(user);
   }
 
   /**

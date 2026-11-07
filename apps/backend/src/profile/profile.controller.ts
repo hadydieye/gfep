@@ -7,6 +7,7 @@ import { Permission } from '../rbac/decorators/permission.decorator.js';
 import { Roles } from '../rbac/decorators/roles.decorator.js';
 import { PROFILE_ROLES } from '../rbac/roles.js';
 import { ChangePasswordDto } from './dto/change-password.dto.js';
+import { UpdateOwnProfileDto } from './dto/update-own-profile.dto.js';
 import { ProfileResponseDto } from './dto/profile-response.dto.js';
 import { ProfileService } from './profile.service.js';
 import { UserThrottlerGuard } from './user-throttler.guard.js';
@@ -21,6 +22,18 @@ export class ProfileController {
   @Permission('profile', 'read')
   get(@CurrentUser() user: AuthenticatedUser): Promise<ProfileResponseDto> {
     return this.profileService.get(user);
+  }
+
+  // GFEP-655 : l'employé met à jour sa propre fiche (N15) sans passer par les RH
+  @Patch('employee')
+  @Roles(...PROFILE_ROLES)
+  @Permission('profile', 'update')
+  updateEmployee(
+    @Body() dto: UpdateOwnProfileDto,
+    @CurrentUser() user: AuthenticatedUser,
+    @Req() request: Request,
+  ): Promise<ProfileResponseDto> {
+    return this.profileService.updateEmployee(user, dto, request.ip ?? 'unknown');
   }
 
   @Patch('password')
