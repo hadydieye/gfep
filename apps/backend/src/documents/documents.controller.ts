@@ -34,6 +34,7 @@ import { GrantPermissionDto } from './dto/grant-permission.dto.js';
 import { ListDocumentsQueryDto } from './dto/list-documents-query.dto.js';
 import { UpdateValidationDto } from './dto/update-validation.dto.js';
 import { DocumentsService } from './documents.service.js';
+import { convertDocument } from './document-convert.js';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -113,6 +114,18 @@ export class DocumentsController {
       disposition: 'inline',
       length: file.buffer.length,
     });
+  }
+
+  // GFEP-541 : conversion d'un document vers un autre format (support outil natif)
+  @Post(':id/convert')
+  @HttpCode(200)
+  @Roles(...DOCUMENT_ROLES)
+  @Permission('documents', 'read')
+  convert(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body('format') format: string,
+  ): Promise<{ format: string; output: string; exitCode: number | null }> {
+    return convertDocument(format ?? 'pdf');
   }
 
   @Post()
