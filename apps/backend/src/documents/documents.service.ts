@@ -27,6 +27,7 @@ import type {
   PaginatedDocumentsDto,
 } from './dto/document-response.dto.js';
 import type { GrantPermissionDto } from './dto/grant-permission.dto.js';
+import type { DocumentCommentDto } from './dto/document-comment.dto.js';
 import type { ListDocumentsQueryDto } from './dto/list-documents-query.dto.js';
 import type { UpdateValidationDto } from './dto/update-validation.dto.js';
 import {
@@ -402,6 +403,62 @@ export class DocumentsService {
     await deleteDocumentFile(storagePath);
   }
 
+  /**
+   * GFEP-670 : fil de commentaires sur un document (AppFlow §3.8).
+   * Les validateurs doivent pouvoir commenter avant validation ; les commentaires
+   * sont visibles de tous ceux qui peuvent voir le document.
+   */
+  async createComment(
+    id: string,
+    content: string,
+    user: AuthenticatedUser,
+    sourceIp: string,
+  ): Promise<DocumentCommentDto> {
+    await this.findVisibleDocument(id, user);
+    const comment = await this.prisma.documentComment.create({
+      data: { documentId: id, authorId: user.id, content },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            employeeIdentity: {
+              include: { employee: { select: { firstName: true, lastName: true } } },
+            },
+          },
+        },
+      },
+    });
+    await this.prisma.$transaction(async (tx) => {
+      await this.audit.record(tx, {
+        ...auditEntry(user, 'document.comment', id, sourceIp),
+        newValues: { commentId: comment.id, length: content.length },
+      });
+    });
+    return toCommentResponse(comment);
+  }
+
+  async listComments(id: string, user: AuthenticatedUser): Promise<DocumentCommentDto[]> {
+    await this.findVisibleDocument(id, user);
+    const comments = await this.prisma.documentComment.findMany({
+      where: { documentId: id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            employeeIdentity: {
+              include: { employee: { select: { firstName: true, lastName: true } } },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 200,
+    });
+    return comments.map(toCommentResponse);
+  }
+
   private async findVisibleDocument(id: string, user: AuthenticatedUser): Promise<DocumentWithRelations> {
     const document = await this.prisma.document.findFirst({
       where: { AND: [{ id }, buildVisibilityWhere(user)] },
@@ -501,4 +558,27 @@ function extensionForMime(mimeType: string): string {
     'image/jpeg': 'jpg',
   };
   return extensions[mimeType] ?? 'bin';
+}
+
+function toCommentResponse(comment: {
+  id: string;
+  content: string;
+  createdAt: Date;
+  author: {
+    id: string;
+    username: string;
+    employeeIdentity: { employee: { firstName: string; lastName: string } } | null;
+  };
+}): DocumentCommentDto {
+  const employee = comment.author.employeeIdentity?.employee;
+  return {
+    id: comment.id,
+    content: comment.content,
+    createdAt: comment.createdAt.toISOString(),
+    author: {
+      id: comment.author.id,
+      username: comment.author.username,
+      displayName: employee ? employee.firstName + ' ' + employee.lastName : comment.author.username,
+    },
+  };
 }

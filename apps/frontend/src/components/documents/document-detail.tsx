@@ -20,6 +20,7 @@ import type {
   DocumentValidationStatus,
 } from '@/lib/api/types';
 import { ConfidentialityBadge, ValidationBadge } from './document-badges';
+import { DocumentComments } from './document-comments';
 
 type PendingAction = 'validate' | 'reject' | 'delete' | null;
 
@@ -206,6 +207,8 @@ export function DocumentDetail({ initialDocument }: { initialDocument: DocumentI
           )}
         </section>
       )}
+
+      <DocumentComments documentId={document.id} />
 
       <ConfirmDialog
         open={pendingAction !== null}
