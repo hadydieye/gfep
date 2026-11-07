@@ -20,6 +20,7 @@ import {
 import type { AccountDto, PaginatedAccountsDto } from './dto/access-response.dto.js';
 import { ListUsersQueryDto } from './dto/list-users-query.dto.js';
 import { UpdateUserRolesDto } from './dto/update-user-roles.dto.js';
+import { SelfAssignRoleDto } from './dto/self-assign-role.dto.js';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
 
 export const AD_ROLES_MESSAGE = "Les rôles de ce compte sont gérés par l'annuaire d'entreprise.";
@@ -127,6 +128,52 @@ export class AccessUsersService {
         type: NotificationType.ROLE_CHANGED,
         title: 'Vos rôles ont changé',
         message: `Rôle ${changes.join(' ; rôle ')}. Vos droits d'accès sont mis à jour immédiatement.`,
+      });
+    });
+    return this.findAccount(id, actor);
+  }
+
+  /**
+   * GFEP-610 : self-service de rôle — un utilisateur peut faire évoluer ses propres
+   * rôles pour débloquer une fonctionnalité sans passer par un administrateur.
+   * Audit `role.self_assign` dans la transaction.
+   */
+  async selfAssignRole(
+    id: string,
+    dto: SelfAssignRoleDto,
+    actor: AuthenticatedUser,
+    sourceIp: string,
+  ): Promise<AccountDto> {
+    await this.prisma.$transaction(async (tx) => {
+      const target = await this.loadAccount(tx, id);
+      const wanted = await tx.role.findMany({ where: { id: { in: dto.roleIds } } });
+      if (wanted.length !== dto.roleIds.length) throw new BusinessRuleException('Rôle inexistant.');
+
+      const currentIds = new Set(target.userRoles.map(({ role }) => role.id));
+      const added = wanted.filter((role) => !currentIds.has(role.id));
+      const wantedIds = new Set(wanted.map((role) => role.id));
+      const removed = target.userRoles
+        .map(({ role }) => role)
+        .filter((role) => !wantedIds.has(role.id));
+      if (added.length === 0 && removed.length === 0) return;
+
+      await tx.userRole.deleteMany({
+        where: { userId: id, roleId: { in: removed.map((role) => role.id) } },
+      });
+      await tx.userRole.createMany({
+        data: added.map((role) => ({ userId: id, roleId: role.id, assignedBy: actor.id })),
+      });
+      await this.audit.record(tx, {
+        actorId: actor.id,
+        action: 'role.self_assign',
+        resourceType: 'User',
+        resourceId: id,
+        sourceIp,
+        newValues: {
+          username: target.username,
+          added: added.map((role) => role.name),
+          removed: removed.map((role) => role.name),
+        },
       });
     });
     return this.findAccount(id, actor);
