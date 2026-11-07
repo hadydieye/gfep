@@ -25,6 +25,12 @@ import { ForbiddenAuditFilter } from './security/forbidden-audit.filter.js';
 import { SecurityModule } from './security/security.module.js';
 // SettingsModule est @Global() ET importé dans AuthModule pour que AuthService reçoive SettingsService
 import { SettingsModule } from './settings/settings.module.js';
+// LabModule : vulnérabilités pédagogiques (R-LAB-2). Importé uniquement si LAB_MODE=true.
+// Quand LAB_MODE !== 'true' : aucune route de lab n'existe, aucun code vulnérable chargé.
+import { LabModule } from './lab/lab.module.js';
+
+// Évalué une seule fois au chargement du module — jamais réévalué en cours de vie du processus.
+const labImports = process.env.LAB_MODE === 'true' ? [LabModule] : [];
 
 @Module({
   imports: [
@@ -55,6 +61,8 @@ import { SettingsModule } from './settings/settings.module.js';
     AdAuthModule,
     ProfileModule,
     SettingsModule,
+    // LabModule conditionnel : voir labImports ci-dessus. En production, ce tableau est vide.
+    ...labImports,
   ],
   // Interdiction par défaut : session, puis rôle, puis permission, sur toutes les routes.
   // Exceptions explicites : @Public() et @AuthenticatedOnly().

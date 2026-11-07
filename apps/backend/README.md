@@ -130,3 +130,16 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+---
+
+## ⚠️ LAB_MODE
+
+La variable d'environnement `LAB_MODE=true` active des **vulnérabilités délibérées** à des fins pédagogiques (scénarios WEB-01 à WEB-08 du programme Enterprise Breach). Ces vulnérabilités sont introduites dans un module NestJS dédié (`src/lab/`) qui n'est chargé que lorsque cette variable est positionnée.
+
+**Ne jamais activer `LAB_MODE` sur un déploiement exposé à un réseau réel.** Ce mode est exclusivement réservé aux environnements de formation isolés (ex. VM Parrot, laboratoire fermé).
+
+Quand `LAB_MODE` est absent ou différent de `'true'` :
+- aucune route de lab n'est enregistrée dans le routeur Express ;
+- aucun code vulnérable n'est chargé en mémoire ;
+- les routes de production ne sont pas modifiées.
