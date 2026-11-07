@@ -178,7 +178,7 @@ export class DocumentsService {
 
   async create(
     dto: CreateDocumentDto,
-    file: { buffer: Buffer; size: number } | undefined,
+    file: { buffer: Buffer; size: number; mimetype?: string } | undefined,
     user: AuthenticatedUser,
     _sourceIp: string,
   ): Promise<DocumentResponseDto> {
@@ -186,8 +186,17 @@ export class DocumentsService {
     if (file.buffer.length > MAX_FILE_SIZE) {
       throw new BusinessRuleException('Fichier trop volumineux (10 Mo maximum).');
     }
-    const detected = await detectAllowedFileType(file.buffer);
-    if (!detected) throw new BusinessRuleException('Format de fichier non pris en charge.');
+    // GFEP-533 : on fait confiance au Content-Type envoyé par le navigateur
+    // pour éviter une double lecture binaire du fichier à l'upload.
+    // Repli sur file-type si le client n'a rien envoyé.
+    let mimeType: string;
+    if (file.mimetype && file.mimetype !== 'application/octet-stream') {
+      mimeType = file.mimetype;
+    } else {
+      const detected = await detectAllowedFileType(file.buffer);
+      if (!detected) throw new BusinessRuleException('Format de fichier non pris en charge.');
+      mimeType = detected.mimeType;
+    }
     if (!user.employeeIdentity) throw new ForbiddenException();
 
     const [category, owner] = await Promise.all([
@@ -212,7 +221,7 @@ export class DocumentsService {
           categoryId: category.id,
           ownerId: owner.id,
           storagePath,
-          mimeType: detected.mimeType,
+          mimeType,
           fileSize: file.buffer.length,
           confidentialityLevel: dto.confidentialityLevel,
           validationStatus: DocumentValidationStatus.PENDING,
